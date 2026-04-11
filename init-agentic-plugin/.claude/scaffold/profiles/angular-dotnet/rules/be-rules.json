@@ -1,0 +1,190 @@
+{
+  "agent": "be-expert",
+  "version": 1,
+  "categories": [
+    {
+      "name": "Architecture & Structure",
+      "prefix": "BE-ARCH",
+      "rules": [
+        { "id": "BE-ARCH-001", "name": "4-layer dependency direction", "category": "architecture", "layer": "all", "check": "Dependencies flow inward: Api → Migrations → Application → Domain. Flag reverse imports.", "why": "Domain must remain pure." },
+        { "id": "BE-ARCH-002", "name": "Feature-based CQRS folders", "category": "architecture", "layer": "app", "check": "{Feature}/Commands/ and {Feature}/Queries/ structure. Flag misplaced files.", "why": "Co-located domain operations." },
+        { "id": "BE-ARCH-003", "name": "Co-locate command+handler+DTO", "category": "architecture", "layer": "app", "check": "IRequest<T> and its IRequestHandler in same file. Shared DTOs in DTOs/ subfolder.", "why": "One unit of behavior." },
+        { "id": "BE-ARCH-004", "name": "Shared helpers in feature files", "category": "architecture", "layer": "app", "check": "Flag >10 line duplication across handlers in same feature. Don't flag small duplications.", "why": "Large duplication = maintenance risk." },
+        { "id": "BE-ARCH-005", "name": "Direct DbContext in handlers accepted", "category": "architecture", "layer": "app", "check": "Do NOT flag DbContext injection. Flag generic repository pattern introduction.", "why": "CQRS provides sufficient structure." }
+      ]
+    },
+    {
+      "name": "Entity & Domain Design",
+      "prefix": "BE-ENTITY",
+      "rules": [
+        { "id": "BE-ENTITY-001", "name": "All entities inherit BaseEntity", "category": "entity-design", "layer": "domain", "check": "Flag entities not inheriting BaseEntity. Flag redefined Id/audit fields.", "why": "Consistent identity and audit trail." },
+        { "id": "BE-ENTITY-002", "name": "Rich domain model", "category": "entity-design", "layer": "domain", "check": "Business logic (state transitions, validation) belongs on entity. Flag handlers directly mutating complex state.", "why": "Centralized business rules." },
+        { "id": "BE-ENTITY-003", "name": "Enums stored as strings", "category": "entity-design", "layer": "domain,infra", "check": "Verify HasConversion<string>() for enums. Flag integer storage.", "why": "Human-readable, survives reordering." },
+        { "id": "BE-ENTITY-004", "name": "Explicit foreign keys", "category": "entity-design", "layer": "domain", "check": "Every navigation property needs corresponding FK property.", "why": "No shadow properties." },
+        { "id": "BE-ENTITY-005", "name": "DeleteBehavior.Restrict default", "category": "entity-design", "layer": "infra", "check": "Flag Cascade/SetNull without justification comment.", "why": "Prevent accidental cascade deletes." },
+        { "id": "BE-ENTITY-006", "name": "Suggest value objects", "category": "entity-design", "layer": "domain", "check": "Flag raw string for email/token/branch on new/modified code. Suggest value object.", "why": "Invalid states unrepresentable." }
+      ]
+    },
+    {
+      "name": "CQRS & MediatR",
+      "prefix": "BE-CQRS",
+      "rules": [
+        { "id": "BE-CQRS-001", "name": "Primary constructors", "category": "cqrs", "layer": "app", "check": "Flag traditional constructors with field assignments.", "fix": "class Handler(AppDbContext db) : IRequestHandler<...>", "why": "Eliminate boilerplate." },
+        { "id": "BE-CQRS-002", "name": "Unit return for side-effect commands", "category": "cqrs", "layer": "app", "check": "Do NOT flag Unit returns. Flag IActionResult/ActionResult returns from handlers.", "why": "ASP.NET types break Clean Architecture." },
+        { "id": "BE-CQRS-003", "name": "Primitive returns acceptable", "category": "cqrs", "layer": "app", "check": "Do NOT flag Guid/string/int/bool returns. Flag IActionResult/object.", "why": "Single value doesn't need DTO wrapping." },
+        { "id": "BE-CQRS-004", "name": "Handler orchestration OK if simple", "category": "cqrs", "layer": "app", "check": "Do NOT flag clear sequential multi-op handlers. Flag 3+ nesting levels.", "why": "Avoid handler explosion." },
+        { "id": "BE-CQRS-005", "name": "Commands may read DB", "category": "cqrs", "layer": "app", "check": "Do NOT flag database reads in command handlers.", "why": "Most mutations need entity loading." },
+        { "id": "BE-CQRS-006", "name": "Pipeline behaviors for repeated patterns", "category": "cqrs", "layer": "app", "check": "Suggest pipeline behavior when same boilerplate in 3+ handlers.", "why": "Centralize cross-cutting concerns." },
+        { "id": "BE-CQRS-007", "name": "Create commands return Guid only", "category": "cqrs", "layer": "app", "check": "Create command handlers (IRequest<T> for POST endpoints) must return Guid (the created entity's Id), not a full DTO. Flag IRequest<SomeDto> on create commands. Callers must query separately if they need the full entity.", "why": "Create endpoints should return the minimum needed (the Id). Returning full DTOs couples the write path to the read model and fetches data the caller may not need." }
+      ]
+    },
+    {
+      "name": "Data Access & EF Core",
+      "prefix": "BE-EF",
+      "rules": [
+        { "id": "BE-EF-001", "name": "AsNoTracking for read-only queries", "category": "ef-core", "layer": "app", "check": "Query handlers (no SaveChangesAsync) must use .AsNoTracking().", "why": "Reduces memory overhead." },
+        { "id": "BE-EF-002", "name": "Separate IEntityTypeConfiguration", "category": "ef-core", "layer": "infra", "check": "OnModelCreating only calls ApplyConfigurationsFromAssembly. Flag inline Entity<T>() calls.", "why": "Organized entity mappings." },
+        { "id": "BE-EF-003", "name": "JSONB hybrid config", "category": "ef-core", "layer": "infra", "check": "Typed C# classes: OwnsOne/.ToJson(). Dictionary/JsonDocument: HasColumnType('jsonb') OK.", "why": "Type safety for structured JSON." },
+        { "id": "BE-EF-004", "name": "Flag raw SQL", "category": "ef-core", "layer": "app,infra", "check": "Flag FromSqlRaw/ExecuteSqlRaw/Interpolated. Higher severity for INSERT/UPDATE/DELETE.", "why": "Bypasses tracking, types, audit." },
+        { "id": "BE-EF-005", "name": "Descriptive migration names", "category": "ef-core", "layer": "infra", "check": "Flag generic names (Migration1, Update, Fix). Verify Down reverses Up.", "why": "Readable history, correct rollbacks." },
+        { "id": "BE-EF-006", "name": "Audit interceptor not bypassed", "category": "ef-core", "layer": "infra,app", "check": "Flag ExecuteSql INSERT/UPDATE. Flag direct ADO.NET writes. Flag interceptor removal.", "why": "Audit trail is critical." },
+        { "id": "BE-EF-007", "name": "Remove unnecessary Includes", "category": "ef-core", "layer": "app", "check": "Every .Include() must be used downstream. Flag unused includes.", "why": "Extra data, slower queries." },
+        { "id": "BE-EF-008", "name": "Bounded queries on large tables", "category": "ef-core", "layer": "app", "check": "Flag unbounded ToListAsync on Candidates/Invites/Evaluations/GitEvents.", "why": "Unbounded = OOM risk." },
+        { "id": "BE-EF-009", "name": "No explicit Id assignment for BaseEntity", "category": "ef-core", "layer": "app", "check": "Flag 'Id = Guid.CreateVersion7()', 'Id = Guid.NewGuid()', or any explicit Id assignment when creating entities that inherit BaseEntity. EF Core ValueGeneratedOnAdd handles Id generation.", "why": "Redundant code; EF Core auto-generates Guid PKs via ValueGeneratedOnAdd. Explicit assignment bypasses the database generation strategy." },
+        { "id": "BE-EF-010", "name": "Use navigation properties for child entity creation", "category": "ef-core", "layer": "app", "check": "When creating a parent entity with children, assign children via the navigation collection property (e.g., Stacks = [..items]). Flag manual FK assignment (e.g., ChallengeId = parent.Id) followed by separate db.ChildSet.Add(). Flag adding child entities to their own DbSet instead of the parent's navigation property.", "why": "EF Core automatically resolves FKs through navigation properties. Manual FK + separate Add is redundant and error-prone." }
+      ]
+    },
+    {
+      "name": "Validation & Error Handling",
+      "prefix": "BE-VAL",
+      "rules": [
+        { "id": "BE-VAL-001", "name": "Fail-fast validation at top", "category": "validation", "layer": "app", "check": "All validation before any mutation or side effect.", "why": "Prevent partial state." },
+        { "id": "BE-VAL-002", "name": "ApiException hierarchy only", "category": "validation", "layer": "app,domain", "check": "Flag throw new Exception/InvalidOperationException/ArgumentException for business errors.", "why": "Non-ApiException = generic 500." },
+        { "id": "BE-VAL-003", "name": "ProblemDetails format", "category": "validation", "layer": "app,domain,api", "check": "Flag hardcoded English in exception constructors. New exceptions must extend ApiException.", "why": "RFC 9457 standard errors." },
+        { "id": "BE-VAL-004", "name": "Null handling on entity lookups", "category": "validation", "layer": "app", "check": "Flag OrDefault without null check. Flag SingleAsync where not-found should 404.", "fix": "?? throw new NotFoundException(...)", "why": "Clear 404 responses." },
+        { "id": "BE-VAL-005", "name": "No swallowed exceptions", "category": "validation", "layer": "all", "check": "Flag empty catch. Flag catch without rethrow/log/convert.", "why": "Silent corruption." },
+        { "id": "BE-VAL-006", "name": "Log external service failures", "category": "validation", "layer": "app", "check": "Catch blocks around HTTP/SMTP/GitHub must log at Warning/Error.", "why": "Visibility for degradation." },
+        { "id": "BE-VAL-007", "name": "ProblemDetails custom error codes", "category": "validation", "layer": "app, domain, api", "check": ["Flag ApiException constructor calls with inline string code parameter (must use ErrorCodes.*)", "Flag error responses with translated/localized text in detail (must be English-only)", "Flag controllers that manually construct error JSON instead of throwing ApiException"], "why": "Backend is language-agnostic. Translations are frontend's responsibility. Custom codes provide a stable contract. Inline strings drift.", "fix": "Use ErrorCodes.* constants. Let frontend map codes via errors.codes.{code}." }
+      ]
+    },
+    {
+      "name": "API & Controllers",
+      "prefix": "BE-API",
+      "rules": [
+        { "id": "BE-API-001", "name": "Thin controllers", "category": "api-controllers", "layer": "api", "check": "Only mediator.Send(). Flag business logic, DB access, service calls in controllers.", "why": "HTTP boundary only." },
+        { "id": "BE-API-002", "name": "Consistent HTTP status codes", "category": "api-controllers", "layer": "api", "check": "All endpoints return 200 with concrete types (per BE-API-007). POST create returns the Guid directly. PUT/PATCH returns the updated DTO or Unit. DELETE returns Unit. Do NOT use CreatedAtAction or StatusCode(201) — just return the value and let ASP.NET default to 200.", "why": "Concrete return types with default 200 status are simpler and produce better OpenAPI specs. The frontend doesn't check status codes." },
+        { "id": "BE-API-003", "name": "Route naming conventions", "category": "api-controllers", "layer": "api", "check": "Lowercase kebab-case plural nouns. Flag uppercase/camelCase/underscores/singular.", "why": "REST convention." },
+        { "id": "BE-API-004", "name": "AllowAnonymous requires comment", "category": "api-controllers", "layer": "api", "check": "Flag [AllowAnonymous] without justification comment.", "why": "Explicit security decision." },
+        { "id": "BE-API-005", "name": "OpenAPI auto-generation sufficient", "category": "api-controllers", "layer": "api", "check": "Do NOT flag missing [ProducesResponseType]. Concrete return types (per BE-API-007) already produce accurate specs.", "why": "Spec accuracy over annotation." },
+        { "id": "BE-API-006", "name": "No API versioning", "category": "api-controllers", "layer": "api", "check": "Flag /v1/, /v2/, api-version prefixes.", "why": "Single frontend consumer, lockstep deploy." },
+        { "id": "BE-API-007", "name": "No ActionResult return types", "category": "api-controllers", "layer": "api", "check": "Flag ActionResult, ActionResult<T>, and IActionResult as controller method return types. Controllers must return the concrete type directly (e.g., Task<Guid>, Task<MyDto>, Task<List<MyDto>>). For non-200 status codes, use StatusCode() helper which returns ObjectResult. Error responses are handled by the ApiException hierarchy and ProblemDetails middleware — no need for ActionResult wrappers.", "why": "ActionResult<T> is a leaky abstraction that adds no value when errors are handled via exceptions. Concrete return types produce accurate OpenAPI specs without [ProducesResponseType] annotations." },
+        { "id": "BE-API-008", "name": "EndpointName attribute over Name parameter", "category": "api-controllers", "layer": "api", "check": "Endpoint names must be declared via a separate [EndpointName(\"...\")]  attribute, NOT via the Name parameter inside HTTP method attributes (e.g., [HttpGet(Name = \"...\")], [HttpPost(\"route\", Name = \"...\")]). Flag any Http{Verb} attribute that contains a Name parameter.", "fix": "[HttpGet(\"pending\")]\n[EndpointName(\"GetPendingInvitesForUser\")]", "why": "Separating the endpoint name from the route template keeps each attribute single-purpose and makes endpoint names easier to search, rename, and review independently of routing." },
+        { "id": "BE-API-009", "name": "No redundant route type constraints", "category": "api-controllers", "layer": "api", "check": "Flag route constraints that duplicate the method parameter type. E.g., flag {id:guid} when the parameter is already typed as Guid id. Use plain {id} instead. The C# parameter type already enforces the type via model binding.", "why": "Redundant — the method signature already declares the type. Duplicating it in the route adds noise and maintenance burden." }
+        { "id": "BE-API-009", "name": "Group related controllers in subfolders", "category": "api-controllers", "layer": "api", "check": "When a domain area has 2+ controllers (e.g., CompaniesController + CompanyInvitesController, or AssessmentsController + AssessmentTemplatesController), they must live in a subfolder under Controllers/ named with the plural domain noun (e.g., Controllers/Companies/, Controllers/Assessments/). Flag multiple controllers sharing the same domain prefix that sit flat in Controllers/.", "why": "Flat controller directories become unnavigable as the API grows. Grouping by domain keeps related endpoints co-located and discoverable." }
+      ]
+    },
+    {
+      "name": "Security & Auth",
+      "prefix": "BE-SEC",
+      "rules": [
+        { "id": "BE-SEC-001", "name": "No hardcoded secrets", "category": "security", "layer": "all", "check": "Flag long alphanumeric strings, ghp_*, eyJ*, Password= in connection strings, secret variable literals.", "why": "Git history is permanent." },
+        { "id": "BE-SEC-002", "name": "Centralized token validation", "category": "security", "layer": "api,app", "check": "Candidate endpoints must use centralized validation. Flag duplicated token logic.", "why": "Inconsistency = missed checks." },
+        { "id": "BE-SEC-003", "name": "Identity through ICurrentUser only", "category": "security", "layer": "api,app", "check": "Flag HttpContext.User, User.FindFirst, ClaimsPrincipal outside ICurrentUser impl.", "why": "Isolate auth provider details." },
+        { "id": "BE-SEC-004", "name": "No sensitive data in prod logs", "category": "security", "layer": "all", "check": "Flag candidate emails/tokens in LogInformation/Warning/Error.", "why": "GDPR risk in log aggregation." },
+        { "id": "BE-SEC-005", "name": "No secrets in logs at any level", "category": "security", "layer": "all", "check": "Flag variables named pat/token/secret/password/apiKey in log templates.", "why": "Log systems have broad access." },
+        {
+          "id": "BE-SEC-006",
+          "name": "Authorization via policies and attributes, never path-matching middleware",
+          "category": "security",
+          "layer": "api",
+          "check": "Flag any middleware that makes authorization decisions based on URL path strings (StartsWithSegments, path.Contains, path.Equals, route prefix whitelists). Authorization bypass/enforcement MUST use ASP.NET authorization policies with endpoint metadata (attributes). Flag HashSet<string> of whitelisted paths/prefixes used for auth decisions.",
+          "why": "Path-matching middleware silently breaks on route renames — no compiler error, no test failure. The security posture of an endpoint becomes split across files and invisible during code review. Attributes are compiler-enforced, co-located with the endpoint, precise (no glob/prefix collisions), and integrate with ASP.NET's authorization pipeline (Swagger, endpoint metadata, integration tests).",
+          "how": {
+            "pattern": "Define an IAuthorizationRequirement + IAuthorizationHandler that checks endpoint metadata for a bypass attribute. Register as a named policy or fallback policy. Apply [BypassX] on specific actions/controllers that should skip the check. Default behavior is fail-closed (no attribute = check enforced).",
+            "dos": [
+              "Use IAuthorizationRequirement + IAuthorizationHandler for cross-cutting auth checks like 'must have companyId claim'",
+              "Use a marker attribute (e.g., [BypassCompanyRequired]) for endpoints that should skip the check",
+              "Check for the marker attribute via endpoint metadata inside the handler: context.Resource is HttpContext http && http.GetEndpoint()?.Metadata.GetMetadata<BypassCompanyRequiredAttribute>() is not null",
+              "Register the policy via AddAuthorizationBuilder().AddPolicy(...) or set it as FallbackPolicy for automatic enforcement on all authenticated endpoints",
+              "Place the bypass attribute directly on the action method or controller class — it must be visible where the endpoint is defined",
+              "Prefer fail-closed defaults: absence of the bypass attribute means the check is enforced",
+              "When using FallbackPolicy, remember it only applies to endpoints that have no other [Authorize] or [AllowAnonymous] — combine with RequireAuthorization() on the endpoint group if needed"
+            ],
+            "donts": [
+              "NEVER make authorization decisions by matching request path strings (StartsWithSegments, Contains, Equals, regex) in middleware",
+              "NEVER maintain a HashSet/List of whitelisted URL prefixes or paths for auth bypass",
+              "NEVER split the security posture of an endpoint across a middleware file and the controller — keep it co-located via attributes",
+              "NEVER use middleware for checks that depend on 'which endpoint is being called' — middleware runs before endpoint routing resolves in some configurations and cannot see endpoint metadata reliably; use IAuthorizationHandler which runs after routing",
+              "NEVER rely on convention/prefix matching like 'all /api/auth/* endpoints skip this check' — a future /api/auth-logs controller would accidentally be whitelisted",
+              "Do not use [AllowAnonymous] as the bypass mechanism for authenticated-but-missing-claim scenarios — it skips ALL authorization, not just the company check. Use a dedicated marker attribute."
+            ],
+            "example_before": "private static readonly HashSet<string> WhitelistedPrefixes = [\"/api/auth\", \"/api/admin\"];\nif (context.Request.Path.StartsWithSegments(prefix)) { await next(context); return; }",
+            "example_after": "[AttributeUsage(AttributeTargets.Class | AttributeTargets.Method)]\npublic class BypassCompanyRequiredAttribute : Attribute;\n\n// In IAuthorizationHandler:\nvar endpoint = httpContext.GetEndpoint();\nif (endpoint?.Metadata.GetMetadata<BypassCompanyRequiredAttribute>() is not null) { context.Succeed(requirement); return; }\nvar companyId = httpContext.User.FindFirst(\"companyId\")?.Value;\nif (!string.IsNullOrEmpty(companyId)) context.Succeed(requirement);"
+          }
+        }
+      ]
+    },
+    {
+      "name": "State Machines",
+      "prefix": "BE-STATE",
+      "rules": [
+        { "id": "BE-STATE-001", "name": "Transitions via entity methods", "category": "state-machines", "layer": "domain,app", "check": "Flag direct status assignment in handlers. Must use entity methods (MarkAsSent(), etc).", "why": "Consistent validation." },
+        { "id": "BE-STATE-002", "name": "Transitions audit-logged", "category": "state-machines", "layer": "domain,app", "check": "Transition methods must capture old state before changing.", "why": "Business event traceability." },
+        { "id": "BE-STATE-003", "name": "Terminal states immutable", "category": "state-machines", "layer": "domain,app", "check": "Check terminal state before mutation. Invites: Completed/Expired/Revoked. Evaluations: Completed/Failed.", "why": "Final outcomes are frozen." },
+        { "id": "BE-STATE-004", "name": "Evaluation state machine rigor", "category": "state-machines", "layer": "domain", "check": "Evaluation needs explicit methods (MarkInProgress, Complete, Fail), validation, terminal checks.", "why": "Same rigor as invite lifecycle." },
+        { "id": "BE-STATE-005", "name": "State machines documented", "category": "state-machines", "layer": "domain", "check": "Entities with status enums must document valid transitions in comment.", "why": "Single source of truth." }
+      ]
+    },
+    {
+      "name": "Background Services",
+      "prefix": "BE-BG",
+      "rules": [
+        { "id": "BE-BG-001", "name": "Error handling in loops", "category": "background-services", "layer": "api", "check": "ExecuteAsync per-iteration try/catch. Flag unhandled exceptions exiting loop.", "why": "One bad record can't block all." },
+        { "id": "BE-BG-002", "name": "Config-driven intervals", "category": "background-services", "layer": "api,app", "check": "Flag hardcoded time literals. Must come from IOptions<T>/IConfiguration.", "why": "Tunable per environment." },
+        { "id": "BE-BG-003", "name": "Graceful shutdown", "category": "background-services", "layer": "api", "check": "stoppingToken in loop condition, Task.Delay, and all async ops.", "why": "Clean shutdown." }
+      ]
+    },
+    {
+      "name": "Performance",
+      "prefix": "BE-PERF",
+      "rules": [
+        { "id": "BE-PERF-001", "name": "Bulk ops via EF Core 7+", "category": "performance", "layer": "app", "check": "Flag load-iterate-save when ExecuteUpdateAsync/ExecuteDeleteAsync would work.", "exceptions": "Audit trail needed = load-save OK with comment.", "why": "Single SQL vs N statements." },
+        { "id": "BE-PERF-002", "name": "Database index awareness", "category": "performance", "layer": "app,infra", "check": "Suggest indexes for unindexed Where/OrderBy on frequent tables.", "why": "Missing index = full scan." },
+        { "id": "BE-PERF-003", "name": "Select projections", "category": "performance", "layer": "app", "check": "Query handlers loading full entity but mapping subset → suggest .Select(e => new Dto(...)).", "why": "Only fetch needed columns." }
+      ]
+    },
+    {
+      "name": "Testing",
+      "prefix": "BE-TEST",
+      "rules": [
+        { "id": "BE-TEST-001", "name": "Every handler has tests", "category": "testing", "layer": "test", "check": "Verify test file exists for each handler.", "why": "Untested handlers = untested rules." },
+        { "id": "BE-TEST-002", "name": "Test naming convention", "category": "testing", "layer": "test", "check": "MethodName_Scenario_ExpectedResult pattern. Flag generic names.", "why": "Living documentation." },
+        { "id": "BE-TEST-003", "name": "Flag hard-to-test handlers", "category": "testing", "layer": "app", "check": "Flag >5-6 constructor params, hidden side effects.", "why": "High coupling symptom." },
+        { "id": "BE-TEST-004", "name": "Track known test gaps", "category": "testing", "layer": "test", "check": "Documented gaps must have issue references.", "why": "Visible tech debt." },
+        { "id": "BE-TEST-005", "name": "Line coverage above 70%", "category": "testing", "layer": "test", "check": "Run dotnet test with XPlat Code Coverage. Parse Cobertura XML. Flag if overall or per-project line-rate < 0.70.", "why": "Untested code = production risk." }
+      ]
+    },
+    {
+      "name": "Code Hygiene",
+      "prefix": "BE-HYGIENE",
+      "rules": [
+        { "id": "BE-HYGIENE-001", "name": "No console/debug artifacts", "category": "hygiene", "layer": "all", "check": "Flag Console.Write*, Debug.Write*, Debugger.Break/Launch, Trace.Write.", "fix": "Use ILogger.", "why": "Console invisible in prod ASP.NET." },
+        { "id": "BE-HYGIENE-002", "name": "No commented-out code", "category": "hygiene", "layer": "all", "check": "Flag 3+ consecutive commented code lines.", "why": "Git history preserves everything." },
+        { "id": "BE-HYGIENE-003", "name": "No TODO/FIXME/HACK", "category": "hygiene", "layer": "all", "check": "Flag TODO, FIXME, HACK, XXX, TEMP, WORKAROUND.", "why": "Create tracked issues." },
+        { "id": "BE-HYGIENE-004", "name": "No unused imports/dead code", "category": "hygiene", "layer": "all", "check": "Flag unused usings, variables, private methods, unreachable code.", "why": "Noise reduction." },
+        { "id": "BE-HYGIENE-005", "name": "Collection expressions over ToList/ToArray", "category": "hygiene", "layer": "all", "check": "Flag .ToList() and .ToArray() when assigning to a collection property or variable that can accept a collection expression. Use C# 12 collection expressions: [.. source] instead. Flag new List<T> { items } when [items] works.", "why": "IDE0305. Collection expressions are more concise and let the compiler choose the optimal collection type." },
+        { "id": "BE-HYGIENE-006", "name": "No redundant null-coalescing for defaulted properties", "category": "hygiene", "layer": "app", "check": "When assigning to an entity property that already has a default initializer (e.g., List<string> Technologies { get; set; } = []), flag null-coalescing fallback to the same default (e.g., Technologies = input.Technologies ?? []). If the input is null, the entity's default already handles it — just assign directly or skip the property.", "why": "Redundant defensive code. The entity default initializer already provides the fallback value, making ?? [] dead logic that obscures intent." }
+      ]
+    },
+    {
+      "name": "Documentation",
+      "prefix": "DOC",
+      "rules": [
+        { "id": "DOC-001", "name": "ARCHITECTURE.md for significant modules", "category": "documentation", "layer": "all", "check": "Backend layer directories (Domain, Application, Api, Migrations), feature directories (Application/{Feature}), and module directories (Api/Auth, Api/GitProxy) with 3+ source files must have an ARCHITECTURE.md. Flag directories without one.", "why": "Embedded architecture docs guide feature developers and code reviewers. Without them, architectural decisions are implicit and easily violated." },
+        { "id": "DOC-002", "name": "GUIDELINES.md for significant modules", "category": "documentation", "layer": "all", "check": "Same directories as DOC-001 must have a GUIDELINES.md with coding patterns, conventions, and dos/don'ts specific to that module.", "why": "Guidelines docs prevent pattern drift and give new contributors concrete examples to follow." },
+        { "id": "DOC-003", "name": "ARCHITECTURE.md minimum sections", "category": "documentation", "layer": "all", "check": "Existing ARCHITECTURE.md files must have at minimum: a heading with module name, a Purpose section, a Components/Structure section, and a Key Decisions section.", "why": "Skeleton docs with no content are worse than no docs — they create false confidence." },
+        { "id": "DOC-004", "name": "GUIDELINES.md minimum sections", "category": "documentation", "layer": "all", "check": "Existing GUIDELINES.md files must have at minimum: a heading with module name, a Patterns section (what to follow), and a Conventions section (naming, structure).", "why": "Guidelines must be actionable. A file with only a heading provides no value." }
+      ]
+    }
+  ]
+}

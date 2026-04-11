@@ -35,19 +35,20 @@ Init Agentic scaffolds a complete `.claude/` infrastructure into your project: a
 > [!NOTE]
 > Requires [Claude Code CLI](https://docs.anthropic.com/en/docs/claude-code) installed and a git repository.
 
-**1. Clone the repo anywhere on your machine**
+### Option A — Install as a plugin (recommended)
 
-```bash
-git clone https://github.com/Black2vs2/black2vs2-agentic-coding.git ~/any/path/you/want
+**1. Add the marketplace and install the plugin**
+
+```
+/plugin marketplace add Black2vs2/black2vs2-agentic-coding
+/plugin install init-agentic@init-agentic
 ```
 
-**2. Open Claude Code in your target project and run the scaffold**
+**2. Run the scaffold in your project**
 
 ```
 /init-agentic
 ```
-
-Claude Code discovers skills from `.claude/` directories. As long as you run the command from within a project, the skill reads its templates from the cloned repo and scaffolds everything into your project's `.claude/` directory.
 
 **3. Answer three questions** — project name (kebab-case), profile (`base` or `angular-dotnet`), and a one-line description.
 
@@ -62,7 +63,17 @@ Claude Code discovers skills from `.claude/` directories. As long as you run the
 That's it. Your project now has agents, rules, scan playbooks, and documentation templates ready to use.
 
 > [!TIP]
-> The cloned repo is only needed to run `/init-agentic`. Once scaffolding is complete, all generated files live inside your project. You can safely delete the cloned repo — your project is fully self-contained.
+> After scaffolding, all generated files live inside your project. You can uninstall the plugin with `/plugin uninstall init-agentic@init-agentic` — your project is fully self-contained.
+
+### Option B — Manual clone
+
+If you prefer not to use the plugin system:
+
+```bash
+git clone https://github.com/Black2vs2/black2vs2-agentic-coding.git ~/any/path/you/want
+```
+
+Open Claude Code in your target project and run `/init-agentic`. Once scaffolding is complete, you can delete the cloned repo.
 
 ## Features
 
