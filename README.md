@@ -65,6 +65,14 @@ That's it. Your project now has agents, rules, scan playbooks, and documentation
 > [!TIP]
 > After scaffolding, all generated files live inside your project. You can uninstall the plugin with `/plugin uninstall init-agentic@init-agentic` — your project is fully self-contained.
 
+### Updating
+
+```
+/plugin update init-agentic@init-agentic
+```
+
+This pulls the latest templates, script, and profiles. Re-run `/init-agentic` to scaffold new files into your project — existing files are never overwritten.
+
 ### Option B — Manual clone
 
 If you prefer not to use the plugin system:

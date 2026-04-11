@@ -9,8 +9,8 @@ Scaffold a complete agentic coding infrastructure into the current project. This
 
 ## Profiles
 
-- **base** — Framework-agnostic core: masterplan system, codemap updater, doc enforcer, research/impact agents, templates, commands. Works with any tech stack.
-- **angular-dotnet** — Everything in base, plus: Angular + .NET specialized agents (feature developers, code reviewers, fixers, test generators, E2E agent), 93 frontend rules, 67 backend rules, 31 scan playbooks.
+- **base** — Framework-agnostic core: masterplan system, codemap updater, doc enforcer, research/impact agents, templates, commands. Works with any tech stack. **Use this for any project that does NOT match a specialized profile exactly.**
+- **angular-dotnet** — Everything in base, plus: Angular + .NET specialized agents (feature developers, code reviewers, fixers, test generators, E2E agent), 93 frontend rules, 67 backend rules, 31 scan playbooks. **Only use this when the project uses BOTH Angular on the frontend AND .NET (C#) on the backend.** If the project uses Angular with a non-.NET backend (e.g. Node.js, NestJS, Express, Go, Python), use `base` instead.
 
 ## Scaffold Source
 
@@ -41,15 +41,28 @@ Templates live in `.claude/scaffold/` relative to wherever this skill is install
 
 ### Phase 1 — Gather Information (interactive)
 
-**Step 1: Ask the user these questions (all at once):**
+**Step 0: Quick-scan the project to determine the correct profile BEFORE asking the user.**
+
+Run these checks silently:
+- `Glob("**/*.csproj")` and `Glob("**/*.sln")` — if .NET files are found, the backend is .NET.
+- `Glob("**/package.json")` — read dependencies to detect Angular (`@angular/core`), and Node.js backends (`@nestjs/core`, `express`, `fastify`, `hapi`, etc.).
+
+**Profile selection logic:**
+- If BOTH `@angular/core` AND `.csproj`/`.sln` files are detected → recommend `angular-dotnet`
+- In ALL other cases → recommend `base`
+- Angular + Node.js (NestJS, Express, etc.) = `base`, NOT `angular-dotnet`
+- React/Vue/Svelte + anything = `base`
+- No frontend framework detected = `base`
+
+**Step 1: Ask the user these questions (all at once), including your profile recommendation:**
 
 1. **Project name** — Used as the agent file prefix and display name.
    - Example: "recruit-app" → agents named `recruit-app-masterplan-architect.md`, display name "Recruit App"
    - Must be lowercase kebab-case (letters, numbers, hyphens)
 
-2. **Profile** — Which scaffolding profile?
+2. **Profile** — Which scaffolding profile? Present your recommendation based on the scan, but let the user override.
    - `base` — generic framework, no tech-stack specific agents/rules
-   - `angular-dotnet` — Angular + Nx + .NET Clean Architecture + PostgreSQL
+   - `angular-dotnet` — Angular + Nx + .NET Clean Architecture + PostgreSQL (only when BOTH Angular AND .NET are detected)
 
 3. **Project description** — One sentence describing what the project does.
    - Example: "A SaaS platform for managing recruitment assessments and code challenges"
@@ -131,80 +144,59 @@ Wait for confirmation. Store the final values.
 
 ### Phase 4 — Scaffold Files
 
-Now read templates from `.claude/scaffold/` and write them to the project, replacing all `__PLACEHOLDER__` tokens.
+**Use the scaffold script** to bulk-copy and replace placeholders in a single command. Do NOT read/write template files individually — that wastes tokens and time.
 
-**Placeholder reference:**
+The script is at `scripts/scaffold.sh` relative to wherever this skill is installed. Find it:
 
-| Placeholder          | Source                    | Example                                           |
-|----------------------|---------------------------|----------------------------------------------------|
-| `__PREFIX__`         | Project name (kebab-case) | `recruit-app`                                      |
-| `__PROJECT_NAME__`   | Project name (Title Case) | `Recruit App`                                      |
-| `__PROJECT_DESC__`   | User's description        | `A SaaS platform for recruitment`                  |
-| `__FE_DIR__`         | Detected frontend dir     | `frontend`                                         |
-| `__BE_DIR__`         | Detected backend dir      | `backend`                                          |
-| `__FE_SERVE__`       | Confirmed command         | `cd frontend && npx nx serve recruitment`          |
-| `__FE_BUILD__`       | Confirmed command         | `cd frontend && npm run build`                     |
-| `__FE_TEST__`        | Confirmed command         | `cd frontend && npm run test`                      |
-| `__FE_FORMAT__`      | Confirmed command         | `cd frontend && npx prettier --write .`            |
-| `__FE_LINT__`        | Confirmed command         | `cd frontend && npx nx lint`                       |
-| `__BE_BUILD__`       | Confirmed command         | `dotnet build backend/MyApp.sln`                   |
-| `__BE_TEST__`        | Confirmed command         | `dotnet test backend/MyApp.sln`                    |
-| `__BE_RUN__`         | Confirmed command         | `dotnet run --project backend/src/MyApp.Api`       |
-| `__BE_FORMAT__`      | Confirmed command         | `dotnet csharpier backend/`                        |
-| `__DB_START__`       | Confirmed command         | `docker compose -f docker/docker-compose.yml up -d`|
-| `__MIGRATION__`      | Confirmed command         | `dotnet ef migrations add ...`                     |
-| `__BE_SLN__`         | Detected .sln path        | `backend/MyApp.sln`                                |
-| `__BE_API_PROJECT__` | Detected API project path | `backend/src/MyApp.Api`                            |
-| `__E2E_CMD__`        | Confirmed command         | `cd frontend && npm run e2e`                       |
-| `__BE_NAMESPACE__`   | .NET root namespace       | `MyApp` (used in scan playbook paths)              |
-
-**Step 4a — Scaffold base files:**
-
-For each file in `.claude/scaffold/base/`:
-1. Read the template file
-2. Replace all `__PLACEHOLDER__` tokens with actual values
-3. Write to the corresponding location in the project:
-   - `base/agents/codebase/*.md` → `.claude/agents/codebase/__PREFIX__-*.md`
-   - `base/agents/domain/*.md` → `.claude/agents/domain/__PREFIX__-*.md`
-   - `base/commands/*.md` → `.claude/commands/*.md`
-   - `base/templates/*` → `.claude/templates/*`
-   - `base/CLAUDE.md` → `CLAUDE.md` (project root)
-   - `base/AGENTS.md` → `.claude/AGENTS.md`
-   - `base/anti-patterns.md` → `.claude/anti-patterns.md`
-   - `base/settings.json` → `.claude/settings.json`
-
-Also create these directories:
 ```bash
-mkdir -p docs/masterplans/executed docs/reports
+# The plugin cache location — look for the scaffold script
+find ~/.claude/plugins -name "scaffold.sh" -path "*/init-agentic*" 2>/dev/null | head -1
 ```
 
-**Step 4b — Scaffold profile files (if angular-dotnet):**
+If not found (manual clone), look in the cloned repo: `<repo>/init-agentic-plugin/scripts/scaffold.sh`.
 
-For each file in `.claude/scaffold/profiles/angular-dotnet/`:
-1. Read the template file
-2. Replace all `__PLACEHOLDER__` tokens
-3. Write to the corresponding location:
-   - `agents/backend/*.md` → `__BE_DIR__/.claude/agents/__PREFIX__-*.md`
-   - `agents/frontend/*.md` → `__FE_DIR__/.claude/agents/__PREFIX__-*.md`
-   - `agents/domain/*.md` → `.claude/agents/domain/__PREFIX__-*.md`
-   - `scans/be-scans/*.md` → `__BE_DIR__/.claude/agents/be-scans/*.md`
-   - `scans/fe-scans/*.md` → `__FE_DIR__/.claude/agents/fe-scans/*.md`
-   - `rules/*.json` → `.claude/rules/*.json`
-   - `anti-patterns-profile.md` → append to `.claude/anti-patterns.md`
+**Run the script** with all placeholder values collected from Phases 1–3. Pass every confirmed value as a `KEY=VALUE` argument. The script handles all file copying, directory creation, path mapping, and placeholder replacement in bulk.
 
-Also create the OpenAPI sync command if both frontend and backend are detected:
-- Read `.claude/scaffold/profiles/angular-dotnet/commands/openapi-sync.md`
-- Replace placeholders, write to `.claude/commands/openapi-sync.md`
-
-Create subdirectory structures:
 ```bash
-mkdir -p __BE_DIR__/.claude/agents/be-scans
-mkdir -p __FE_DIR__/.claude/agents/fe-scans
+bash "<path-to-scaffold.sh>" \
+  "<path-to-scaffold-dir>" \
+  "$(pwd)" \
+  "<profile>" \
+  PREFIX="<kebab-name>" \
+  PROJECT_NAME="<Title Case Name>" \
+  PROJECT_DESC="<description>" \
+  FE_DIR="<frontend-dir>" \
+  BE_DIR="<backend-dir>" \
+  FE_SERVE="<cmd>" \
+  FE_BUILD="<cmd>" \
+  FE_TEST="<cmd>" \
+  FE_FORMAT="<cmd>" \
+  FE_LINT="<cmd>" \
+  BE_BUILD="<cmd>" \
+  BE_TEST="<cmd>" \
+  BE_RUN="<cmd>" \
+  BE_FORMAT="<cmd>" \
+  DB_START="<cmd>" \
+  MIGRATION="<cmd>" \
+  BE_SLN="<path>" \
+  BE_API_PROJECT="<path>" \
+  E2E_CMD="<cmd>" \
+  BE_NAMESPACE="<namespace>"
 ```
+
+The `<path-to-scaffold-dir>` is the `.claude/scaffold/` directory next to the script (same plugin/repo root).
+
+**For commands that were not detected or skipped:** pass `TODO: configure` as the value. The script will leave those as markers for the user to fill in later.
+
+**After the script runs**, check its output for:
+- `SKIP:` lines — files that already existed (not overwritten)
+- `Files with unresolved placeholders` — files that need manual attention
+
+**If any unresolved placeholders remain**, read only those specific files and replace the remaining tokens using context from the project scan. This is the only time you should use Read/Edit on scaffold output — and only for the files the script flagged.
 
 ### Phase 5 — Generate Initial CODEMAP
 
-After scaffolding, generate a minimal `CODEMAP.md` at the project root:
+After scaffolding, generate a minimal `CODEMAP.md` at the project root. This is the one file that requires AI generation (not template copying):
 
 1. Scan the project structure (`ls` the root, key directories)
 2. Write a CODEMAP.md with:
@@ -214,32 +206,14 @@ After scaffolding, generate a minimal `CODEMAP.md` at the project root:
    - Leave detailed sections (entities, patterns, API surface) for the codemap updater to fill
 
 Also create placeholder frontend/backend CODEMAPs if those directories exist:
-- `__FE_DIR__/CODEMAP.md` — stub with section headers
-- `__BE_DIR__/CODEMAP.md` — stub with section headers
+- `<FE_DIR>/CODEMAP.md` — stub with section headers
+- `<BE_DIR>/CODEMAP.md` — stub with section headers
 
 ### Phase 6 — Report
 
-Output a summary of what was created:
+Show the script's output summary to the user, then append:
 
 ```
-## ✅ Agentic Setup Complete
-
-**Project:** __PROJECT_NAME__
-**Profile:** base | angular-dotnet
-**Agent prefix:** __PREFIX__
-
-### Files Created
-
-| Category        | Count | Location                              |
-|-----------------|-------|---------------------------------------|
-| Agents          | N     | .claude/agents/, fe/.claude/, be/.claude/ |
-| Commands        | N     | .claude/commands/                     |
-| Rules           | N     | .claude/rules/                        |
-| Scan Playbooks  | N     | fe/.claude/agents/fe-scans/, be/.claude/agents/be-scans/ |
-| Templates       | 2     | .claude/templates/                    |
-| Config          | 2     | .claude/settings.json, .claude/anti-patterns.md |
-| Documentation   | 3+    | CLAUDE.md, CODEMAP.md, .claude/AGENTS.md |
-
 ### Next Steps
 
 1. **Review CLAUDE.md** — Verify the generated project documentation is accurate
@@ -258,8 +232,7 @@ Output a summary of what was created:
 
 ## Important Rules
 
-- **Never overwrite existing files** — If a file already exists at the target path, SKIP it and note in the report. The user's existing work takes priority.
-- **Create directories as needed** — Use `mkdir -p` before writing files.
-- **Validate placeholder replacement** — After writing each file, verify no `__PLACEHOLDER__` tokens remain. If any do, the detection missed something — use a sensible default or mark as `TODO: configure`.
+- **Never overwrite existing files** — The script skips them automatically. Respect its SKIP output.
+- **Minimize tool calls** — The script handles bulk work. Only use Read/Edit for unresolved placeholders flagged by the script and for CODEMAP generation.
 - **Keep agent files self-contained** — Each agent file must work independently. Don't create cross-references that break if files are moved.
 - **Preserve the dynamic discovery pattern** — Agents discover each other via `.claude/AGENTS.md` and directory scanning, not hardcoded filenames.
