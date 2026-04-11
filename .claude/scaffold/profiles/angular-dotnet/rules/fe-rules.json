@@ -1,0 +1,302 @@
+{
+  "agent": "fe-expert",
+  "version": 1,
+  "categories": [
+    {
+      "name": "Component Structure",
+      "prefix": "FE-COMP",
+      "rules": [
+        { "id": "FE-COMP-001", "name": "Standalone components only", "category": "component-structure", "check": "Scan all @Component decorators. Flag any without standalone: true or declared in NgModule.", "fix": "Add standalone: true.", "why": "Project uses standalone exclusively." },
+        { "id": "FE-COMP-002", "name": "Separate files for feature/page components", "category": "component-structure", "check": "In features/ or pages/, verify templateUrl and styleUrl (not inline). In ui/, inline is acceptable.", "why": "Complex components with inline templates become unreadable." },
+        { "id": "FE-COMP-003", "name": "Concise folder naming", "category": "component-structure", "check": "Flag folders whose name starts with parent folder name (challenges/challenges-list/ → challenges/list/).", "why": "Repeated prefixes create verbose paths." },
+        { "id": "FE-COMP-004", "name": "ChangeDetectionStrategy.OnPush always", "category": "component-structure", "check": "Flag any @Component without changeDetection: ChangeDetectionStrategy.OnPush.", "fix": "Add changeDetection: ChangeDetectionStrategy.OnPush.", "why": "OnPush prevents unnecessary change detection." },
+        { "id": "FE-COMP-005", "name": "File and class naming conventions", "category": "component-structure", "check": "Files: kebab-case with type suffix (.component.ts, .store.ts, etc). Classes: PascalCase matching file. Signal vars: no $ suffix. Observable vars: must have $ suffix.", "why": "Consistent naming makes codebase searchable." },
+        { "id": "FE-COMP-006", "name": "Selector prefix handled by ESLint", "category": "component-structure", "check": "Skip — ESLint handles via @angular-eslint/component-selector.", "why": "Don't duplicate existing tooling." },
+        { "id": "FE-COMP-007", "name": "One concern per folder", "category": "component-structure", "check": "Each distinct concern (component, dialog, service group, interceptor group, guard group) must have its own subfolder. Flag: (1) Two or more components in the same folder — each component gets its own folder with its .ts/.html/.scss/.spec.ts files. (2) Different concern types mixed flat — e.g., interceptors, guards, and services all loose in the same folder instead of grouped into interceptors/, guards/ subfolders. (3) A dialog/modal component living inside a form or page component's folder instead of its own subfolder. Acceptable: a component's .store.ts, .spec.ts, and template/style files co-located in the same folder as the component. Acceptable: a single shared utility file (validators, utils) at the lib root if used by multiple siblings. Acceptable: routes.ts at the lib root.", "fix": "Move each component into its own named subfolder. Group related non-component files (interceptors, guards) into a named subfolder.", "why": "Flat folders with mixed concerns make it impossible to find things at a glance. One folder = one responsibility = one mental unit." }
+      ]
+    },
+    {
+      "name": "Signals & Reactivity",
+      "prefix": "FE-SIG",
+      "rules": [
+        { "id": "FE-SIG-001", "name": "Signal-based component API only", "category": "signals", "check": "Flag @Input(, @Output(, @ViewChild(, @ViewChildren(, @ContentChild(, @ContentChildren( decorators.", "fix": "Use input(), output(), viewChild(), viewChildren(), contentChild(), contentChildren(), model().", "why": "Angular 21 signal API is stable. No exceptions." },
+        { "id": "FE-SIG-002", "name": "Signals over RxJS in components", "category": "signals", "check": "In components (not stores/services), flag BehaviorSubject, Subject, combineLatest, merge when signal/computed would suffice.", "why": "Signals are simpler for non-stream data." },
+        { "id": "FE-SIG-003", "name": "No async pipe in templates", "category": "signals", "check": "Flag every | async in .html templates.", "fix": "Use toSignal() in component, signal in template.", "why": "Async pipe creates implicit subscriptions." },
+        { "id": "FE-SIG-004", "name": "Subscription cleanup with takeUntilDestroyed", "category": "signals", "check": "In components, every .subscribe() must have takeUntilDestroyed() before it.", "exceptions": "rxMethod in stores managed by store lifecycle.", "why": "Unmanaged subscriptions leak memory." },
+        { "id": "FE-SIG-005", "name": "No complex logic in templates", "category": "signals", "check": "Flag method calls in interpolations ({{ fn() }}), ternaries, chained access beyond 2 levels.", "fix": "Extract to computed() signal.", "why": "Method calls run every change detection cycle." }
+      ]
+    },
+    {
+      "name": "State Management",
+      "prefix": "FE-STATE",
+      "rules": [
+        { "id": "FE-STATE-001", "name": "signalStore for shared state and API calls", "category": "state-management", "check": "Flag direct API service injection in components. Flag @Input/@Output chains > 2 levels between siblings.", "why": "Stores centralize state and data flow." },
+        { "id": "FE-STATE-002", "name": "withPaginatedList for paginated APIs", "category": "state-management", "check": "Stores fetching paginated endpoints must use withPaginatedList. Flag manual pagination state.", "why": "Consistent pagination behavior." },
+        { "id": "FE-STATE-003", "name": "Store composition order", "category": "state-management", "check": "Verify: withState → withComputed → withMethods → custom features.", "why": "Consistent ordering: state → derived → actions." },
+        { "id": "FE-STATE-004", "name": "rxMethod pattern: tap(loading) → switchMap → tap(success) → catchError → finalize", "category": "state-management", "check": "Every rxMethod with a loading flag must follow this pipe order: (1) tap(() => patchState(store, { saving: true })) BEFORE switchMap to set loading, (2) switchMap expression-only with inner pipe containing tap (success), catchError(() => EMPTY), finalize (cleanup loading). Flag: patchState for loading inside switchMap callback, missing catchError, missing finalize.", "fix": "Move patchState({ saving: true }) to a tap() operator BEFORE switchMap. catchError must return EMPTY. finalize resets loading.", "why": "Loading state set inside switchMap couples concerns. tap before switchMap is scannable. Without catchError stream dies. Without finalize spinners stuck." },
+        { "id": "FE-STATE-005", "name": "No direct HttpClient injection", "category": "state-management", "check": "Flag inject(HttpClient) or HttpClient import anywhere.", "fix": "Use generated services from @libs/core/api.", "why": "Generated services are type-safe." },
+        { "id": "FE-STATE-006", "name": "No .subscribe() in components", "category": "state-management", "check": "Flag .subscribe() in components. API/store calls → store rxMethod. UI-only → needs takeUntilDestroyed().", "why": "Stores own async orchestration." },
+        { "id": "FE-STATE-007", "name": "No unsafe type casts on API calls", "category": "state-management", "check": "Flag 'as any', 'as Observable<any>', 'as unknown' on generated API service calls.", "fix": "Fix OpenAPI spec and regenerate.", "why": "Casts silently break type safety." },
+        { "id": "FE-STATE-008", "name": "No async/await in signalStore methods", "category": "state-management", "check": "Inside withMethods of signalStore, flag any async function, firstValueFrom(), lastValueFrom(), or Promise-based API calls. All API calls in stores must use rxMethod with a pipe-based reactive stream.", "fix": "Replace async method with rxMethod using pipe(switchMap(() => service.call()), tap(result => patchState(...)), catchError(() => EMPTY), finalize(() => patchState(...))).", "why": "async/await breaks the reactive stream — errors kill the method permanently, no retry, no cancellation, no backpressure. rxMethod keeps the stream alive.",
+          "donts": [
+            {
+              "label": "Simple API call with firstValueFrom",
+              "code": "async exportChallenge(challengeId: string): Promise<ChallengeExportDto> {\n  return await firstValueFrom(challengesService.exportChallenge({ id: challengeId }));\n}"
+            },
+            {
+              "label": "API call with try/catch state management",
+              "code": "async togglePublished(): Promise<void> {\n  const challenge = store.challenge();\n  if (!challenge) return;\n  patchState(store, { saving: true });\n  try {\n    const updated = await firstValueFrom(challengesService.updateChallenge({ id: challenge.id, body: { ...challenge, isPublished: !challenge.isPublished } }));\n    patchState(store, { challenge: { ...challenge, ...updated }, saving: false });\n  } catch {\n    patchState(store, { saving: false });\n  }\n}"
+            },
+            {
+              "label": "Sequential API calls with await chaining",
+              "code": "async importQuiz(challengeId: string, data: ExportQuizDto): Promise<void> {\n  patchState(store, { saving: true });\n  try {\n    await firstValueFrom(challengesService.importQuiz({ id: challengeId, body: { data } }));\n    const questions = await firstValueFrom(challengesService.getQuestionsByChallenge({ id: challengeId }));\n    const challenge = await firstValueFrom(challengesService.getChallengeById({ id: challengeId }));\n    patchState(store, { questions, challenge, saving: false });\n  } catch {\n    patchState(store, { saving: false });\n  }\n}"
+            }
+          ],
+          "dos": [
+            {
+              "label": "Simple API call → rxMethod storing result in state",
+              "code": "exportChallenge: rxMethod<string>(\n  pipe(\n    switchMap((challengeId) =>\n      challengesService.exportChallenge({ id: challengeId }).pipe(\n        tap((data) => patchState(store, { challengeExport: data })),\n        catchError(() => EMPTY),\n      ),\n    ),\n  ),\n)"
+            },
+            {
+              "label": "API call needing store state → map + filter before switchMap",
+              "code": "togglePublished: rxMethod<void>(\n  pipe(\n    map(() => store.challenge()),\n    filter(Boolean),\n    tap(() => patchState(store, { saving: true })),\n    switchMap((challenge) =>\n      challengesService.updateChallenge({\n        id: challenge.id,\n        body: { ...challenge, isPublished: !challenge.isPublished },\n      }).pipe(\n        tap((updated) => patchState(store, { challenge: { ...challenge, ...updated } })),\n        catchError(() => EMPTY),\n        finalize(() => patchState(store, { saving: false })),\n      ),\n    ),\n  ),\n)"
+            },
+            {
+              "label": "Sequential API calls → switchMap chain with forkJoin for parallel loads",
+              "code": "importQuiz: rxMethod<{ challengeId: string; data: ExportQuizDto }>(\n  pipe(\n    tap(() => patchState(store, { saving: true })),\n    switchMap(({ challengeId, data }) =>\n      challengesService.importQuiz({ id: challengeId, body: { data } }).pipe(\n        switchMap(() =>\n          forkJoin({\n            questions: challengesService.getQuestionsByChallenge({ id: challengeId }),\n            challenge: challengesService.getChallengeById({ id: challengeId }),\n          }),\n        ),\n        tap(({ questions, challenge }) =>\n          patchState(store, { questions: Array.isArray(questions) ? questions : [], challenge }),\n        ),\n        catchError(() => EMPTY),\n        finalize(() => patchState(store, { saving: false })),\n      ),\n    ),\n  ),\n)"
+            }
+          ]
+        },
+        { "id": "FE-STATE-009", "name": "Concise catchError syntax", "category": "state-management", "check": "Flag catchError with block body that only returns EMPTY: catchError(() => { return EMPTY; }). Must be expression form.", "fix": "Replace with catchError(() => EMPTY).", "why": "Unnecessary block body adds noise." },
+        { "id": "FE-STATE-011", "name": "rxMethod pipe composition: no switchMap block bodies, loading state always in tap before switchMap", "category": "state-management", "check": "In rxMethod pipes, flag: (1) switchMap/exhaustMap with block body (=> { ... return ...; }), (2) patchState({ saving/loading: true }) inside switchMap callback instead of in a tap() before switchMap. switchMap must be expression-only (=> service.call().pipe(...)). Side effects (patchState for loading), guards (filter), and store reads (map(() => store.x())) go in separate pipe operators BEFORE switchMap.", "fix": "Move patchState({ saving: true }) to a tap() step BEFORE switchMap. Move store reads to map() + filter(Boolean) steps before switchMap. switchMap receives the prepared value and returns the API observable directly (expression-only, no block body).",
+          "why": "Block bodies in switchMap hide side effects and mix concerns. patchState inside switchMap couples loading state management with the API call. Flat pipe steps are scannable — each operator does one thing: tap sets loading, switchMap calls the API, inner tap handles success, catchError handles failure, finalize resets loading.",
+          "donts": [
+            {
+              "label": "switchMap with block body mixing state, guards, and API call",
+              "code": "saveItem: rxMethod<void>(\n  pipe(\n    switchMap(() => {\n      const item = store.item();\n      if (!item) return EMPTY;\n      patchState(store, { saving: true });\n      return service.update({ id: item.id, body: item }).pipe(\n        tap((res) => patchState(store, { item: res })),\n        catchError(() => EMPTY),\n        finalize(() => patchState(store, { saving: false })),\n      );\n    }),\n  ),\n)"
+            },
+            {
+              "label": "patchState for loading INSIDE switchMap callback (even without block body)",
+              "code": "batchUpdate: rxMethod<{ challengeId: string; stories: UserStoryDto[] }>(\n  pipe(\n    switchMap(({ challengeId, stories }) => {\n      patchState(store, { saving: true });\n      return service.batchUpdateUserStories({ id: challengeId, body: { stories } }).pipe(\n        tap((updated) => patchState(store, { userStories: updated })),\n        catchError(() => EMPTY),\n        finalize(() => patchState(store, { saving: false })),\n      );\n    }),\n  ),\n)"
+            }
+          ],
+          "dos": [
+            {
+              "label": "Flat pipe: map → filter → tap → switchMap (expression only)",
+              "code": "saveItem: rxMethod<void>(\n  pipe(\n    map(() => store.item()),\n    filter(Boolean),\n    tap(() => patchState(store, { saving: true })),\n    switchMap((item) =>\n      service.update({ id: item.id, body: item }).pipe(\n        tap((res) => patchState(store, { item: res })),\n        catchError(() => EMPTY),\n        finalize(() => patchState(store, { saving: false })),\n      ),\n    ),\n  ),\n)"
+            },
+            {
+              "label": "Loading state in tap BEFORE switchMap, switchMap is expression-only",
+              "code": "batchUpdate: rxMethod<{ challengeId: string; stories: UserStoryDto[] }>(\n  pipe(\n    tap(() => patchState(store, { saving: true })),\n    switchMap(({ challengeId, stories }) =>\n      service.batchUpdateUserStories({ id: challengeId, body: { stories } }).pipe(\n        tap((updated) => patchState(store, { userStories: updated })),\n        catchError(() => EMPTY),\n        finalize(() => patchState(store, { saving: false })),\n      ),\n    ),\n  ),\n)"
+            }
+          ]
+        },
+        { "id": "FE-STATE-010", "name": "rxMethod calls require injection context", "category": "state-management", "check": "Flag any rxMethod call with a signal or observable argument that happens outside an injection context (constructor, field initializer, or explicit injector). Common violation: calling store.loadSomething(signal) inside ngOnInit or afterNextRender without passing an injector.", "fix": "Either move the call to the constructor/field initializer, or pass { injector: this.injector } as the second argument to the rxMethod call.", "why": "ngrx/signals requires injection context for reactive method subscriptions. Calling outside one is deprecated and will throw in future versions." },
+        { "id": "FE-STATE-011", "name": "Never navigate before async store action completes", "category": "state-management", "check": "Flag any component method that calls a store action (rxMethod) and then calls router.navigate() synchronously afterward. The navigation destroys the component, unsubscribes the observable, and cancels the in-flight HTTP request.", "fix": "Store method must accept an onSuccess callback. Call router.navigate() inside the callback, which the store invokes inside tap() after the HTTP response succeeds. Pattern: store.delete({ id, onSuccess: () => this.router.navigate([...]) }).", "why": "Navigating before the HTTP response arrives cancels the request. Deletes, creates, and updates silently fail while the UI navigates away as if they succeeded." }
+      ]
+    },
+    {
+      "name": "Forms",
+      "prefix": "FE-FORM",
+      "rules": [
+        { "id": "FE-FORM-001", "name": "All forms extend BaseFormComponent<T>", "category": "forms", "check": "Components with form()/FormField must extend BaseFormComponent<T>.", "why": "Standardized form lifecycle." },
+        { "id": "FE-FORM-002", "name": "Forms emit save, never handle submission", "category": "forms", "check": "Form components must have output() named save. Flag store/API injection in form components.", "why": "Forms collect data, pages decide what to do." },
+        { "id": "FE-FORM-003", "name": "Validators as factory functions", "category": "forms", "check": "Validators must be function references or factory calls, not inline arrows.", "why": "Reusable and testable." },
+        { "id": "FE-FORM-004", "name": "Validation: blur, i18n, error below field", "category": "forms", "check": "Every FormField with validators needs error display in template using | translate and ngx-error.", "why": "Consistent, translatable error UX." }
+      ]
+    },
+    {
+      "name": "Internationalization",
+      "prefix": "FE-I18N",
+      "rules": [
+        { "id": "FE-I18N-001", "name": "Zero hardcoded user-visible text", "category": "i18n", "check": "Flag text content in templates, string args to MessageService/ConfirmationService/DynamicDialogConfig not using translate.", "why": "App supports IT + EN." },
+        { "id": "FE-I18N-002", "name": "Translation keys scoped to feature", "category": "i18n", "check": "Key prefix must match library (candidates.* in candidates/, common.* anywhere).", "why": "Prevent cross-feature coupling." },
+        { "id": "FE-I18N-003", "name": "Every key in both IT and EN JSON", "category": "i18n", "check": "Collect keys from code, verify both public/i18n/it.json and en.json have them.", "why": "Missing key shows raw key string." },
+        { "id": "FE-I18N-004", "name": "No orphaned translation keys", "category": "i18n", "check": "Keys in JSON not referenced in any template or TypeScript.", "why": "Orphaned keys bloat translation files." },
+        { "id": "FE-I18N-005", "name": "TranslateModule in every component using translate pipe", "category": "i18n", "check": "Template with | translate → @Component.imports must include TranslateModule.", "why": "Standalone components don't inherit imports." }
+      ]
+    },
+    {
+      "name": "API & Data",
+      "prefix": "FE-API",
+      "rules": [
+        { "id": "FE-API-001", "name": "Generated API services only", "category": "api", "check": "API imports must come from @libs/core/api, not relative paths. No direct HttpClient.", "why": "Type-safe backend contract." },
+        { "id": "FE-API-002", "name": "Error interceptor + store-level handling", "category": "api", "check": "Every rxMethod has catchError + finalize. Critical flows (invite, eval) have custom error messages.", "why": "Global interceptor + store-level defense in depth." },
+        { "id": "FE-API-003", "name": "OpenAPI drift detection (sub-agent)", "category": "api", "check": "When generated client or API usage in diff → spawn openapi-drift sub-agent.", "why": "Stale client causes runtime errors." },
+        { "id": "FE-API-004", "name": "No barrel import bloat", "category": "api", "check": "Flag imports from library root when deep import available (primeng → primeng/button).", "why": "Barrel imports defeat tree-shaking." },
+        { "id": "FE-API-005", "name": "No business/UI logic in libs/core/api", "category": "api", "check": "Flag any hand-written file in libs/core/api/src/lib/ that is NOT inside the generated/ directory. The @libs/core/api library must contain ONLY the generated/ directory (services, models, api-configuration) and the barrel index.ts. Pipes, utility functions, enum configs, severity mappers, and any other business or presentation logic must live in a dedicated lib (e.g., @libs/ui/enum-pipes).", "fix": "Move the file to the appropriate lib: pipes → @libs/ui/{pipe-name}, domain utils → @libs/core/{domain}. Update all imports.", "why": "libs/core/api is auto-generated — hand-written code gets overwritten on regeneration and couples presentation logic to the API contract.",
+          "donts": [
+            { "label": "Severity mapper function in core/api", "code": "// libs/core/api/src/lib/status-severity.ts\nexport function inviteStatusSeverity(status: string): string { ... }" },
+            { "label": "Pipe class in core/api", "code": "// libs/core/api/src/lib/enums.ts\n@Pipe({ name: 'enumLabel' })\nexport class EnumLabelPipe { ... }" },
+            { "label": "Enum config/mapping in core/api", "code": "// libs/core/api/src/lib/enums.ts\nexport const ENUM_CONFIG = { inviteStatus: { names: [...], prefix: 'enums.inviteStatus' } };" },
+            { "label": "Separate per-enum severity pipe", "code": "// libs/ui/status-severity-pipe/src/lib/status-severity.pipe.ts\n@Pipe({ name: 'statusSeverity' })\nexport class StatusSeverityPipe { ... }" }
+          ],
+          "dos": [
+            { "label": "Centralized enum config with severities", "code": "// libs/ui/enum-pipes/src/lib/enum-config.ts\nexport const ENUM_CONFIG = { inviteStatus: { names: [...], prefix: 'enums.inviteStatus', severities: { Draft: 'secondary', Sent: 'info', ... } } };" },
+            { "label": "Generic enumSeverity pipe", "code": "// libs/ui/enum-pipes/src/lib/enum-severity.pipe.ts\n@Pipe({ name: 'enumSeverity' })\nexport class EnumSeverityPipe { transform(value, enumType) { return ENUM_CONFIG[enumType]?.severities?.[value] ?? 'info'; } }" },
+            { "label": "Template usage", "code": "<p-badge [value]=\"status | enumLabel: 'inviteStatus' | translate\" [severity]=\"status | enumSeverity: 'inviteStatus'\" />" },
+            { "label": "core/api barrel exports only generated code", "code": "// libs/core/api/src/index.ts\nexport { ApiConfiguration } from './lib/generated/api-configuration';\nexport * from './lib/generated/services';\nexport * from './lib/generated/models';" }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "Routing & Navigation",
+      "prefix": "FE-ROUTE",
+      "rules": [
+        { "id": "FE-ROUTE-001", "name": "Route params via input(), never ActivatedRoute", "category": "routing", "check": "Flag ActivatedRoute import, .snapshot, .paramMap usage.", "fix": "Use input.required<string>() with withComponentInputBinding().", "why": "Signal route params are reactive." },
+        { "id": "FE-ROUTE-002", "name": "Lazy loading for all page routes", "category": "routing", "check": "Every page route must use loadComponent: () => import(...).", "why": "Small initial bundle." },
+        { "id": "FE-ROUTE-003", "name": "Functional guards only", "category": "routing", "check": "Flag class-based CanActivate/CanDeactivate/CanLoad/Resolve.", "why": "Functional guards are simpler." },
+        { "id": "FE-ROUTE-004", "name": "Route path conventions", "category": "routing", "check": "Kebab-case, plural for lists, :id for details.", "why": "Consistent URLs." },
+        { "id": "FE-ROUTE-005", "name": "Auth guards on all protected routes", "category": "routing", "check": "Every route except /login must have canActivate with auth guard.", "why": "Missing guard = unauthenticated access." },
+        { "id": "FE-ROUTE-006", "name": "Navigation patterns", "category": "routing", "check": "Flag window.location for internal nav. After mutations verify navigation. Verify breadcrumbs.", "fix": "Use Router.navigate() or routerLink.", "why": "window.location reloads, losing state." },
+        { "id": "FE-ROUTE-007", "name": "Navigate to detail after entity creation", "category": "routing", "check": "After a successful create API call (POST that returns an entity Id), the component must navigate to the entity's detail/edit page using router.navigate(['/entity-path', id, 'edit']). Flag create flows that stay on the list page, show only a toast, or close a dialog without navigation. Wizard and standalone create pages must always redirect to the detail page.", "why": "Users expect to land on the newly created entity to continue editing. Staying on the list forces them to find it manually." },
+        { "id": "FE-ROUTE-008", "name": "Routes via AppRoutes enum only", "category": "routing", "check": "Flag hardcoded route strings in router.navigate(), routerLink, and navItem definitions. All route paths must use AppRoutes enum from @libs/core/routing. For routes with params, use buildRoute(AppRoutes.X, { id }). For simple routes, use AppRoutes.X directly. Flag any string literal that looks like a route path ('/', '/login', '/candidates', etc.) not sourced from the enum.", "fix": "Import { AppRoutes, buildRoute } from '@libs/core/routing' and replace hardcoded strings.", "why": "Hardcoded route strings are fragile — renaming a route requires finding every occurrence. The enum provides autocomplete, compile-time safety, and a single source of truth for all route paths." }
+      ]
+    },
+    {
+      "name": "Auth & Security",
+      "prefix": "FE-AUTH",
+      "rules": [
+        { "id": "FE-AUTH-001", "name": "Token access only through auth service", "category": "auth", "check": "Flag localStorage get/set/remove outside auth service. Flag direct Authorization header outside interceptor.", "why": "Centralized token management." },
+        { "id": "FE-AUTH-002", "name": "No secrets in code", "category": "auth", "check": "Scan for API key formats, JWTs, base64 >40 chars, secret variable names with string literals.", "why": "Secrets in git history permanently." },
+        { "id": "FE-AUTH-003", "name": "Vulnerability scanning", "category": "auth", "check": "Flag [innerHTML], bypassSecurityTrust*, eval(), new Function(), unvalidated URL construction.", "why": "XSS in admin panel is high-privilege." }
+      ]
+    },
+    {
+      "name": "UI Patterns",
+      "prefix": "FE-UI",
+      "rules": [
+        { "id": "FE-UI-001", "name": "PrimeNG tree-shake imports", "category": "ui-patterns", "check": "Flag primeng root imports. Must use primeng/button, primeng/table, etc.", "why": "PrimeNG is large." },
+        { "id": "FE-UI-002", "name": "Lazy load heavy PrimeNG components", "category": "ui-patterns", "check": "Flag heavy PrimeNG (Dialog, Editor, Calendar) in eagerly loaded components.", "why": "Heavy components bloat initial bundle." },
+        { "id": "FE-UI-003", "name": "DynamicDialog for all modals", "category": "ui-patterns", "check": "Flag <p-dialog> in templates. Use dialogService.open().", "why": "Self-contained dialog components." },
+        { "id": "FE-UI-004", "name": "Detail page save in page header", "category": "ui-patterns", "check": "Save button in <ui-page-header>, not inside form component. Page uses viewChild to call form.onSave().", "why": "Consistent action bar." },
+        { "id": "FE-UI-005", "name": "Status badges via enumSeverity pipe", "category": "ui-patterns", "check": "Flag inline status displays with hardcoded severity or ternary severity logic. Use p-badge with enumSeverity pipe: [severity]=\"value | enumSeverity: 'enumType'\". Add severities to the enum's ENUM_CONFIG entry in @libs/ui/enum-pipes.", "why": "Consistent status colors from centralized config." },
+        { "id": "FE-UI-006", "name": "All enum/status values handled in ENUM_CONFIG", "category": "ui-patterns", "check": "Compare generated API enum values against ENUM_CONFIG severities mapping. Flag unhandled values. Every value in the enum should have a severity entry.", "why": "Unhandled status = falls back to default info badge silently." },
+        { "id": "FE-UI-007", "name": "Confirmation for destructive actions", "category": "ui-patterns", "check": "Delete/revoke endpoints must show ConfirmationService.confirm() with translated message + entity name.", "why": "Prevent accidental deletions." },
+        { "id": "FE-UI-008", "name": "Loading, empty, and error states", "category": "ui-patterns", "check": "Every isLoading signal needs template loading indicator. Every list needs empty state. Every fetch needs error state.", "why": "Missing states = broken UX." },
+        { "id": "FE-UI-009", "name": "Toast notifications for mutations", "category": "ui-patterns", "check": "After create/update/delete in store tap block, verify MessageService.add() with translate key.", "why": "Users need action confirmation." },
+        { "id": "FE-UI-010", "name": "Extract non-trivial tab panels into components", "category": "ui-patterns", "check": "Each <p-tabpanel> whose content is more than a few simple elements (e.g. contains a form, a table, or business logic) must use a dedicated child component. Only trivially simple tabs (a short paragraph, a single read-only field) may inline their content directly inside <p-tabpanel>. Flag: (1) <p-tabpanel> with >15 lines of template content and no child component. (2) <p-tabpanel> content that injects services, manages signals, or has event handlers. The child component should wrap its content in <ui-tab-content> from @libs/ui/card.", "fix": "Extract tab content into a standalone component in its own subfolder (e.g. company-info-tab/). The component injects the shared store and handles its own local state. The parent page remains a thin orchestrator: tabs + tab list + child components.", "why": "Fat tab panels bloat the parent page component, making it hard to read and test. Extracting keeps each tab focused and independently testable." },
+        { "id": "FE-UI-011", "name": "Use full PrimeNG tab structure", "category": "ui-patterns", "check": "All tab implementations must use the complete PrimeNG tab structure: <p-tabs> → <p-tablist> → <p-tab> + <p-tabpanels> → <p-tabpanel>. Flag: (1) <p-tabs> without a <p-tabpanels> child — tab content rendered via manual @if blocks outside the <p-tabs> element. (2) <p-tablist> without a sibling <p-tabpanels>. This applies to both local-state tabs (valueChange sets a signal) and routed tabs (valueChange triggers navigation, value comes from route input).", "fix": "Move tab content inside <p-tabpanels>/<p-tabpanel> within the <p-tabs> element. Set the [value] on each <p-tabpanel> to match its <p-tab>. Remove manual @if (activeTab() === '...') blocks.", "why": "Manual @if blocks bypass PrimeNG's built-in panel management, break keyboard navigation and ARIA attributes, and create inconsistent tab behavior across the app." }
+      ]
+    },
+    {
+      "name": "Styling",
+      "prefix": "FE-STYLE",
+      "rules": [
+        { "id": "FE-STYLE-001", "name": "Design tokens only", "category": "styling", "check": "Flag hardcoded hex/rgb/named colors (except transparent/inherit/currentColor) and hardcoded font sizes in .scss.", "fix": "Use PrimeNG tokens, Tailwind theme, or CSS custom properties.", "why": "Hardcoded values break theming." },
+        { "id": "FE-STYLE-002", "name": "No !important without justification", "category": "styling", "check": "Flag !important without comment on same or preceding line.", "why": "Breaks CSS cascade." },
+        { "id": "FE-STYLE-003", "name": "No barrel import bloat", "category": "styling", "check": "Flag library root imports when deep import available.", "why": "Tree-shaking." }
+      ]
+    },
+    {
+      "name": "Performance",
+      "prefix": "FE-PERF",
+      "rules": [
+        { "id": "FE-PERF-001", "name": "No method calls in templates", "category": "performance", "check": "Flag {{ method() }} and [value]='method()' (event handlers OK).", "fix": "Use computed() signal.", "why": "Runs every change detection cycle." },
+        { "id": "FE-PERF-002", "name": "Virtual scroll for large lists", "category": "performance", "check": "Lists >50 items need cdk-virtual-scroll-viewport or PrimeNG virtualScroll.", "why": "DOM bloat." },
+        { "id": "FE-PERF-003", "name": "Optimized images", "category": "performance", "check": "Flag <img> without loading='lazy', width, height.", "why": "Lazy loading + no layout shift." },
+        { "id": "FE-PERF-004", "name": "Track expression in @for", "category": "performance", "check": "Flag @for without track expression.", "why": "Without track, Angular recreates all DOM." }
+      ]
+    },
+    {
+      "name": "Library Structure",
+      "prefix": "FE-LIB",
+      "rules": [
+        { "id": "FE-LIB-001", "name": "Libraries must be created via Nx generators", "category": "library-structure", "check": "Every library under libs/ must be a proper Nx library created with `npx nx g @nx/angular:library`. Flag any library directory under libs/ that is missing a `project.json` file. A manually created directory with just src/index.ts is NOT a valid Nx library.", "fix": "Run the appropriate Nx generator command for the library type. See the fe-scans/library-structure.md playbook for exact commands per library domain (core, features, pages, ui).", "why": "Nx generators create project.json, tsconfig files, and register the library in the workspace graph. Without this, the library is invisible to Nx (nx show projects), cannot have its own build/test/lint targets, and breaks dependency graph analysis." },
+        { "id": "FE-LIB-002", "name": "Library placement follows domain structure", "category": "library-structure", "check": "Libraries must be placed under the correct domain: libs/core/ for shared utilities and services, libs/features/ for feature-specific smart components, libs/pages/ for lazy-loaded routed pages, libs/ui/ for presentational UI components. Flag libraries placed at libs/ root or under a wrong domain.", "why": "Consistent domain grouping makes the codebase navigable and enforces dependency direction (pages → features → core/ui)." },
+        { "id": "FE-LIB-003", "name": "tsconfig path alias registered", "category": "library-structure", "check": "Every library must have a corresponding @libs/{domain}/{name} path alias in tsconfig.json pointing to its src/index.ts. Flag libraries without a path alias.", "why": "Without the path alias, other libraries cannot import from it using the @libs/ prefix." },
+        { "id": "FE-LIB-004", "name": "Library must have tsconfig.lib.json and tsconfig.spec.json", "category": "library-structure", "check": "Every Nx library must have its own tsconfig.lib.json (library compilation config) and tsconfig.spec.json (test compilation config) next to project.json. Flag libraries missing either file.", "fix": "Run the Nx generator to recreate the library, or manually create the tsconfig files following the pattern from another library.", "why": "These files define compilation boundaries. Without tsconfig.lib.json, the library cannot be built independently. Without tsconfig.spec.json, tests cannot resolve library-specific paths." },
+        { "id": "FE-LIB-005", "name": "Library must have ESLint config", "category": "library-structure", "check": "Every Nx library must have an eslint.config.mjs (or .eslintrc.json for legacy) file at its root. Flag libraries missing ESLint configuration.", "fix": "Run the Nx generator which creates the config, or copy from a sibling library and adjust paths.", "why": "Without per-library ESLint config, `nx lint {lib}` fails and the library is excluded from lint-affected analysis." },
+        { "id": "FE-LIB-006", "name": "No deep imports bypassing barrel export", "category": "library-structure", "check": "Flag any import that reaches into a library's internal path (e.g., `@libs/core/auth/src/lib/auth.service`) instead of using the barrel export (`@libs/core/auth`). Also flag relative imports crossing library boundaries (e.g., `../../core/auth/src/lib/...`).", "fix": "Import from the barrel: `import { AuthService } from '@libs/core/auth';`. If the symbol is not exported, add it to the library's src/index.ts.", "why": "Deep imports break encapsulation, bypass the public API, and create fragile coupling to internal file structure. Barrel exports are the library's contract." },
+        { "id": "FE-LIB-007", "name": "Library dependency direction enforced", "category": "library-structure", "check": "Enforce dependency direction: pages -> features -> core, pages -> ui, features -> ui, features -> core. Flag violations: (1) core/ importing from features/ or pages/, (2) ui/ importing from features/ or pages/, (3) features/ importing from pages/, (4) any lib importing from the app shell (frontend/src/).", "fix": "Move shared code to core/ or ui/. If a feature needs another feature's data, extract the shared part into core/.", "why": "Backward dependencies create circular coupling, break Nx's affected analysis, and make libraries impossible to use independently." }
+      ]
+    },
+    {
+      "name": "Code Hygiene",
+      "prefix": "FE-HYGIENE",
+      "rules": [
+        { "id": "FE-HYGIENE-001", "name": "No console/debugger", "category": "hygiene", "check": "Flag console.log/warn/error/debug/info and debugger.", "why": "Dev artifacts, can leak info." },
+        { "id": "FE-HYGIENE-002", "name": "No commented-out code", "category": "hygiene", "check": "Flag 3+ consecutive commented lines with code patterns.", "why": "Git history preserves everything." },
+        { "id": "FE-HYGIENE-003", "name": "No unused imports/variables/dead code", "category": "hygiene", "check": "Flag unused imports, variables, private methods, unreachable code.", "why": "Noise and confusion." },
+        { "id": "FE-HYGIENE-004", "name": "No TODO/FIXME/HACK", "category": "hygiene", "check": "Flag TODO, FIXME, HACK, XXX, TEMP, WORKAROUND.", "why": "Create tickets instead." },
+        { "id": "FE-HYGIENE-005", "name": "No any type", "category": "hygiene", "check": "Flag : any, <any>, as any. Exclude *.spec.ts and generated/.", "fix": "Use proper types, unknown with guards, or generics.", "why": "any disables type checking." },
+        { "id": "FE-HYGIENE-006", "name": "Docs on complex logic only", "category": "hygiene", "check": "Do NOT flag missing JSDoc. Only flag complex functions without why-comment.", "why": "Forced docs go stale." }
+      ]
+    },
+    {
+      "name": "Page Shell & Layout",
+      "prefix": "DS-LAYOUT",
+      "rules": [
+        { "id": "DS-LAYOUT-001", "name": "Topbar and sidebar always visible", "category": "layout", "check": "Verify shell has topbar+sidebar. Flag display:none/visibility:hidden/@if hiding them. Login exempt.", "why": "Navigation must always be accessible." },
+        { "id": "DS-LAYOUT-002", "name": "Only content area scrolls", "category": "layout", "check": "Topbar/sidebar fixed or sticky. Main content overflow-y:auto. No body overflow.", "why": "Fixed shell is admin panel standard." },
+        { "id": "DS-LAYOUT-003", "name": "Table headers fixed while scrolling", "category": "layout", "check": "PrimeNG tables: scrollable='true' + scrollHeight. Custom tables: sticky thead.", "why": "Users need column context." }
+      ]
+    },
+    {
+      "name": "Form Layout",
+      "prefix": "DS-FORM",
+      "rules": [
+        { "id": "DS-FORM-001", "name": "6-column grid for forms", "category": "form-layout", "check": "Forms use grid-cols-6. Fields span: numeric=1, medium=2, text=3, long/textarea=6.", "why": "Divisible by 1,2,3,6. Field size communicates input type." },
+        { "id": "DS-FORM-002", "name": "Error display below field", "category": "form-layout", "check": "Errors positioned after input, red from design tokens, no layout shift.", "why": "Clear visual association." },
+        { "id": "DS-FORM-003", "name": "Searchable selects", "category": "form-layout", "check": "p-select must have [filter]='true' when >10 options.", "why": "Long lists need search." }
+      ]
+    },
+    {
+      "name": "Visual Consistency",
+      "prefix": "DS-VISUAL",
+      "rules": [
+        { "id": "DS-VISUAL-001", "name": "Component reuse before creation", "category": "visual-consistency", "check": "Before new UI, search libs/ui/ and PrimeNG for existing match.", "why": "Every new component is maintenance." },
+        { "id": "DS-VISUAL-002", "name": "Font sizes from tokens", "category": "visual-consistency", "check": "Flag hardcoded font-size values. Accept var(), Tailwind classes, PrimeNG vars.", "why": "Systematic typography." },
+        { "id": "DS-VISUAL-003", "name": "Colors from tokens", "category": "visual-consistency", "check": "Flag hardcoded colors (except transparent/inherit/currentColor).", "why": "Theme consistency." },
+        { "id": "DS-VISUAL-004", "name": "Consistent date format", "category": "visual-consistency", "check": "Flag | date:'custom' with hardcoded format. Use shared date pipe.", "why": "One format everywhere." },
+        { "id": "DS-VISUAL-005", "name": "Enums as badges via enumSeverity", "category": "visual-consistency", "check": "Flag raw text display of enum values. Use p-badge with enumSeverity pipe: [severity]=\"value | enumSeverity: 'enumType'\". Register severity mappings in ENUM_CONFIG (libs/ui/enum-pipes/src/lib/enum-config.ts). Flag per-enum severity pipes — use the generic EnumSeverityPipe instead.", "why": "Color coding for scanning. Centralized config prevents per-enum duplication." },
+        { "id": "DS-VISUAL-006", "name": "Spacing from tokens", "category": "visual-consistency", "check": "Flag hardcoded px in margin/padding/gap. Use Tailwind or CSS vars.", "why": "Visual rhythm." }
+      ]
+    },
+    {
+      "name": "Interactive Patterns",
+      "prefix": "DS-INTERACT",
+      "rules": [
+        { "id": "DS-INTERACT-001", "name": "Routed tabs for shareable state", "category": "interactive-patterns", "check": "Tabs loading different data must use child routes. Flag activeIndex when URL warranted.", "exceptions": "Cosmetic form groupings.", "why": "Shareable URLs, browser back/forward." },
+        { "id": "DS-INTERACT-002", "name": "Table row actions as inline buttons", "category": "interactive-patterns", "check": "Last column always-visible action buttons. Flag p-menu/dropdown/hover-reveal for row actions.", "why": "Immediate discoverability." },
+        { "id": "DS-INTERACT-003", "name": "Loading indicators everywhere", "category": "interactive-patterns", "check": "Every loading signal needs template indicator. Skeletons for content, spinners for blocking ops.", "why": "No indicator = broken feel." },
+        { "id": "DS-INTERACT-004", "name": "Button placement consistency", "category": "interactive-patterns", "check": "Page actions in ui-page-header right-aligned. Dialog buttons bottom right. Destructive = danger style.", "why": "Muscle memory." },
+        { "id": "DS-INTERACT-005", "name": "Confirm dialogs use correct button labels", "category": "interactive-patterns", "check": "Delete actions: severity='danger' + acceptLabelKey='common.delete'. Non-destructive confirmations: default severity='primary' + default label 'common.confirm'. Never show 'Delete' for non-delete actions.", "why": "Button label must match the action to avoid user confusion." },
+        { "id": "DS-INTERACT-006", "name": "Disable controls when action is impossible", "category": "interactive-patterns", "check": "If the UI can determine upfront that an action will fail (e.g. last owner cannot change role), the control must be [disabled]='true' with a [title] tooltip explaining why. Never let users trigger a known-failing action.", "why": "Better UX than letting users click and seeing an error." },
+        { "id": "DS-INTERACT-007", "name": "Confirm dialog minimum dimensions", "category": "interactive-patterns", "check": "Global .p-confirmdialog must have min-width: 420px and min-height: 90px defined in styles.scss.", "why": "Small dialogs look broken on desktop." }
+      ]
+    },
+    {
+      "name": "UI Library Consistency",
+      "prefix": "DS-LIB",
+      "rules": [
+        { "id": "DS-LIB-001", "name": "PrimeNG as sole UI component library", "category": "ui-library", "check": "All form inputs, buttons, dialogs, tables, selects, toasts, and badges must use PrimeNG components (pInputText, p-button, p-password, p-select, p-confirmdialog, p-datatable, p-badge, p-toast). Flag custom implementations of components PrimeNG already provides.", "why": "One library = one look. Mixing libraries creates visual inconsistency." },
+        { "id": "DS-LIB-002", "name": "Non-editable fields shown as disabled inputs", "category": "ui-library", "check": "Entity fields that are not editable (e.g. email on profile/user detail) must be rendered as <input pInputText [disabled]='true'> — never as plain text, spans, or ui-detail-row. Must not be included in backend update commands.", "why": "Disabled inputs signal 'this field exists but you cannot change it'. Plain text is ambiguous." },
+        { "id": "DS-LIB-003", "name": "Tablist pattern for page tabs", "category": "ui-library", "check": "Page-level tabs must use <p-tabs> with <p-tablist>/<p-tab> + @if blocks for content. Never use <p-tabpanels>/<p-tabpanel>. Tab state via signal or route param.", "why": "Consistent tab pattern across all pages (invites, challenges, profile)." },
+        { "id": "DS-LIB-004", "name": "PrimeNG locale synced with ngx-translate", "category": "ui-library", "check": "PrimeNG translation labels (password strength, etc.) must be synced with ngx-translate via PrimeNG.setTranslation() on language change. Translation keys under 'primeng.*' in i18n files.", "why": "Mixed-language UI is unprofessional." },
+        { "id": "DS-LIB-005", "name": "Global input styles match PrimeNG appearance", "category": "ui-library", "check": "Global input styles in styles.scss must produce identical look to PrimeNG pInputText. Background: bg-surface-container-lowest. No conflicting borders, focus rings, or placeholder colors between global and PrimeNG styles.", "why": "Inputs with and without pInputText directive must look the same." },
+        { "id": "DS-LIB-006", "name": "PrimeNG component doc registry", "category": "ui-library", "check": "Before using a PrimeNG component not listed in frontend/PRIMENG.md 'Currently Used Components' table: (1) fetch its docs via WebFetch https://primeng.org/{component}.md, (2) add a row to the table between PRIMENG-TRACKER:START/END markers. Flag new primeng/* imports whose component is missing from PRIMENG.md.", "fix": "Add the component row to frontend/PRIMENG.md and fetch its docs before using it.", "why": "The PRIMENG.md registry ensures agents always have doc links for every component in use. Without it, agents guess at API usage and introduce bugs." }
+      ]
+    },
+    {
+      "name": "Accessibility",
+      "prefix": "DS-A11Y",
+      "rules": [
+        { "id": "DS-A11Y-001", "name": "Images have alt text", "category": "accessibility", "check": "Flag <img> without alt. Flag generic alt ('image','photo'). Decorative = alt=''.", "why": "Screen reader support." },
+        { "id": "DS-A11Y-002", "name": "Semantic interactive elements", "category": "accessibility", "check": "Flag (click) on div/span/p/li/tr. Use <button> or wrap in one.", "why": "Keyboard and screen reader accessible." },
+        { "id": "DS-A11Y-003", "name": "PrimeNG aria labels", "category": "accessibility", "check": "Icon-only p-button, unlabeled p-inputText/p-select must have ariaLabel.", "why": "Screen readers need descriptions." }
+      ]
+    },
+    {
+      "name": "Documentation",
+      "prefix": "DOC",
+      "rules": [
+        { "id": "DOC-001", "name": "ARCHITECTURE.md for significant libraries", "category": "documentation", "layer": "all", "check": "Core libraries (libs/core/{lib}), feature libraries (libs/features/{lib}), page libraries (libs/pages/{lib}), and the UI library (libs/ui/) with 3+ source files must have an ARCHITECTURE.md. Flag libraries without one.", "why": "Embedded architecture docs guide feature developers and code reviewers. Without them, architectural decisions are implicit and easily violated." },
+        { "id": "DOC-002", "name": "GUIDELINES.md for significant libraries", "category": "documentation", "layer": "all", "check": "Same libraries as DOC-001 must have a GUIDELINES.md with coding patterns, conventions, and dos/don'ts specific to that library.", "why": "Guidelines docs prevent pattern drift and give new contributors concrete examples to follow." },
+        { "id": "DOC-003", "name": "ARCHITECTURE.md minimum sections", "category": "documentation", "layer": "all", "check": "Existing ARCHITECTURE.md files must have at minimum: a heading with module name, a Purpose section, a Components/Structure section, and a Key Decisions section.", "why": "Skeleton docs with no content are worse than no docs — they create false confidence." },
+        { "id": "DOC-004", "name": "GUIDELINES.md minimum sections", "category": "documentation", "layer": "all", "check": "Existing GUIDELINES.md files must have at minimum: a heading with module name, a Patterns section (what to follow), and a Conventions section (naming, structure).", "why": "Guidelines must be actionable. A file with only a heading provides no value." }
+      ]
+    }
+  ]
+}
