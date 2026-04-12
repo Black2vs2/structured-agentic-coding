@@ -1,130 +1,72 @@
 name: Release
 
+# Requires a repo secret named RELEASE_TOKEN:
+# a PAT with 'repo' + 'workflow' scopes from an admin account.
+# Settings → Secrets and variables → Actions → New repository secret
+
 on:
   workflow_dispatch:
     inputs:
       version_type:
-        description: 'Release type (semver)'
+        description: 'Release type'
         required: true
         type: choice
-        options:
-          - patch
-          - minor
-          - major
+        options: [patch, minor, major]
 
 permissions:
   contents: write
 
 jobs:
-  create-release-pr:
+  release:
     runs-on: ubuntu-latest
     steps:
-      - name: Checkout
-        uses: actions/checkout@v4
+      - uses: actions/checkout@v4
         with:
+          token: ${{ secrets.RELEASE_TOKEN }}
           fetch-depth: 0
 
-      - name: Install jq
-        run: sudo apt-get install -y jq
-
       - name: Compute new version
-        id: version
+        id: ver
         run: |
           CURRENT=$(jq -r '.version' structured-agentic-coding-plugin/.claude-plugin/plugin.json)
-          IFS='.' read -r MAJOR MINOR PATCH <<< "$CURRENT"
-
+          IFS='.' read -r MAJ MIN PAT <<< "$CURRENT"
           case "${{ inputs.version_type }}" in
-            major) MAJOR=$((MAJOR + 1)); MINOR=0; PATCH=0 ;;
-            minor) MINOR=$((MINOR + 1)); PATCH=0 ;;
-            patch) PATCH=$((PATCH + 1)) ;;
+            major) MAJ=$((MAJ+1)); MIN=0; PAT=0 ;;
+            minor) MIN=$((MIN+1)); PAT=0 ;;
+            patch) PAT=$((PAT+1)) ;;
           esac
-
-          NEW="${MAJOR}.${MINOR}.${PATCH}"
-          echo "current=$CURRENT" >> "$GITHUB_OUTPUT"
+          NEW="${MAJ}.${MIN}.${PAT}"
           echo "new=$NEW" >> "$GITHUB_OUTPUT"
-          echo "Current: $CURRENT → New: $NEW"
+          echo "Releasing $CURRENT → $NEW"
 
-      - name: Generate changelog entry
-        id: changelog
+      - name: Update plugin.json
         run: |
-          NEW_VERSION="${{ steps.version.outputs.new }}"
-          TODAY=$(date +%Y-%m-%d)
-
-          LAST_TAG=$(git tag --sort=-v:refname | head -1 || true)
-          RANGE="${LAST_TAG:+${LAST_TAG}..HEAD}"
-          [[ -z "$RANGE" ]] && RANGE="HEAD"
-
-          ADDED=""
-          CHANGED=""
-          FIXED=""
-
-          while IFS= read -r msg; do
-            [[ -z "$msg" ]] && continue
-            clean_msg=$(echo "$msg" | sed 's/^[a-z]*([^)]*): //' | sed 's/^[a-z]*: //')
-            if echo "$msg" | grep -qE '^feat(\(|:)'; then
-              ADDED+=$'\n'"- $clean_msg"
-            elif echo "$msg" | grep -qE '^fix(\(|:)'; then
-              FIXED+=$'\n'"- $clean_msg"
-            elif echo "$msg" | grep -qE '^(refactor|perf|style)(\(|:)'; then
-              CHANGED+=$'\n'"- $clean_msg"
-            fi
-          done < <(git log "$RANGE" --pretty=format:"%s" -- structured-agentic-coding-plugin/)
-
-          ENTRY="## [${NEW_VERSION}] - ${TODAY}"
-          [[ -n "$ADDED" ]] && ENTRY+=$'\n\n'"### Added${ADDED}"
-          [[ -n "$CHANGED" ]] && ENTRY+=$'\n\n'"### Changed${CHANGED}"
-          [[ -n "$FIXED" ]] && ENTRY+=$'\n\n'"### Fixed${FIXED}"
-
-          if [[ -z "$ADDED" && -z "$CHANGED" && -z "$FIXED" ]]; then
-            ENTRY+=$'\n\n'"### Changed"$'\n'"- Version bump to ${NEW_VERSION}"
-          fi
-
-          echo "entry<<ENTRY_EOF" >> "$GITHUB_OUTPUT"
-          echo "$ENTRY" >> "$GITHUB_OUTPUT"
-          echo "ENTRY_EOF" >> "$GITHUB_OUTPUT"
-
-      - name: Update plugin.json version
-        run: |
-          NEW_VERSION="${{ steps.version.outputs.new }}"
-          jq --arg v "$NEW_VERSION" '.version = $v' \
+          jq --arg v "${{ steps.ver.outputs.new }}" '.version = $v' \
             structured-agentic-coding-plugin/.claude-plugin/plugin.json > tmp.json
           mv tmp.json structured-agentic-coding-plugin/.claude-plugin/plugin.json
 
       - name: Update CHANGELOG.md
         run: |
-          CHANGELOG="structured-agentic-coding-plugin/CHANGELOG.md"
-          ENTRY="${{ steps.changelog.outputs.entry }}"
-
-          awk -v entry="$ENTRY" '
-            /^## \[Unreleased\]/ {
-              print
-              print ""
-              print entry
-              next
-            }
+          ENTRY="## [${{ steps.ver.outputs.new }}] - $(date +%Y-%m-%d)"
+          awk -v e="$ENTRY" '
+            /^## \[Unreleased\]/ { print; print ""; print e; next }
             { print }
-          ' "$CHANGELOG" > tmp_changelog.md
-          mv tmp_changelog.md "$CHANGELOG"
+          ' structured-agentic-coding-plugin/CHANGELOG.md > tmp.md
+          mv tmp.md structured-agentic-coding-plugin/CHANGELOG.md
 
-      - name: Create release branch and push
+      - name: Commit, tag, push
         run: |
-          NEW_VERSION="${{ steps.version.outputs.new }}"
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
-          git checkout -b "release/v${NEW_VERSION}"
-          git add structured-agentic-coding-plugin/.claude-plugin/plugin.json
-          git add structured-agentic-coding-plugin/CHANGELOG.md
-          git commit -m "release: v${NEW_VERSION}"
-          git push origin "release/v${NEW_VERSION}"
+          git add structured-agentic-coding-plugin/.claude-plugin/plugin.json \
+                  structured-agentic-coding-plugin/CHANGELOG.md
+          git commit -m "release: v${{ steps.ver.outputs.new }}"
+          git tag "v${{ steps.ver.outputs.new }}"
+          git push origin main --tags
 
-      - name: Output PR link
-        run: |
-          NEW_VERSION="${{ steps.version.outputs.new }}"
-          REPO="${{ github.repository }}"
-          PR_URL="https://github.com/${REPO}/compare/main...release/v${NEW_VERSION}?expand=1&title=release%3A+v${NEW_VERSION}"
-          echo "### Release branch pushed" >> "$GITHUB_STEP_SUMMARY"
-          echo "" >> "$GITHUB_STEP_SUMMARY"
-          echo "**[Open PR to merge release/v${NEW_VERSION} → main](${PR_URL})**" >> "$GITHUB_STEP_SUMMARY"
-          echo "" >> "$GITHUB_STEP_SUMMARY"
-          echo "Use **Squash and merge** — keep the PR title \`release: v${NEW_VERSION}\` as the commit message." >> "$GITHUB_STEP_SUMMARY"
-          echo "The publish workflow will create the tag and GitHub Release automatically on merge." >> "$GITHUB_STEP_SUMMARY"
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: "v${{ steps.ver.outputs.new }}"
+          name: "v${{ steps.ver.outputs.new }}"
+          generate_release_notes: true
