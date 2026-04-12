@@ -14,9 +14,10 @@ on:
 
 permissions:
   contents: write
+  pull-requests: write
 
 jobs:
-  release:
+  create-release-pr:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
@@ -27,17 +28,10 @@ jobs:
       - name: Install jq
         run: sudo apt-get install -y jq
 
-      - name: Read current version
-        id: current
-        run: |
-          VERSION=$(jq -r '.version' structured-agentic-coding-plugin/.claude-plugin/plugin.json)
-          echo "version=$VERSION" >> "$GITHUB_OUTPUT"
-          echo "Current version: $VERSION"
-
       - name: Compute new version
-        id: new
+        id: version
         run: |
-          CURRENT="${{ steps.current.outputs.version }}"
+          CURRENT=$(jq -r '.version' structured-agentic-coding-plugin/.claude-plugin/plugin.json)
           IFS='.' read -r MAJOR MINOR PATCH <<< "$CURRENT"
 
           case "${{ inputs.version_type }}" in
@@ -46,33 +40,27 @@ jobs:
             patch) PATCH=$((PATCH + 1)) ;;
           esac
 
-          NEW_VERSION="${MAJOR}.${MINOR}.${PATCH}"
-          echo "version=$NEW_VERSION" >> "$GITHUB_OUTPUT"
-          echo "New version: $NEW_VERSION"
+          NEW="${MAJOR}.${MINOR}.${PATCH}"
+          echo "current=$CURRENT" >> "$GITHUB_OUTPUT"
+          echo "new=$NEW" >> "$GITHUB_OUTPUT"
+          echo "Current: $CURRENT → New: $NEW"
 
       - name: Generate changelog entry
         id: changelog
         run: |
-          NEW_VERSION="${{ steps.new.outputs.version }}"
-          CURRENT_VERSION="${{ steps.current.outputs.version }}"
+          NEW_VERSION="${{ steps.version.outputs.new }}"
           TODAY=$(date +%Y-%m-%d)
 
-          # Get commits since last tag (or all commits if no tag exists)
           LAST_TAG=$(git tag --sort=-v:refname | head -1 || true)
-          if [[ -n "$LAST_TAG" ]]; then
-            RANGE="${LAST_TAG}..HEAD"
-          else
-            RANGE="HEAD"
-          fi
+          RANGE="${LAST_TAG:+${LAST_TAG}..HEAD}"
+          [[ -z "$RANGE" ]] && RANGE="HEAD"
 
-          # Categorize commits
           ADDED=""
           CHANGED=""
           FIXED=""
 
           while IFS= read -r msg; do
             [[ -z "$msg" ]] && continue
-            # Strip conventional commit prefix for display
             clean_msg=$(echo "$msg" | sed 's/^[a-z]*([^)]*): //' | sed 's/^[a-z]*: //')
             if echo "$msg" | grep -qE '^feat(\(|:)'; then
               ADDED+=$'\n'"- $clean_msg"
@@ -83,31 +71,22 @@ jobs:
             fi
           done < <(git log "$RANGE" --pretty=format:"%s" -- structured-agentic-coding-plugin/)
 
-          # Build changelog section
           ENTRY="## [${NEW_VERSION}] - ${TODAY}"
           [[ -n "$ADDED" ]] && ENTRY+=$'\n\n'"### Added${ADDED}"
           [[ -n "$CHANGED" ]] && ENTRY+=$'\n\n'"### Changed${CHANGED}"
           [[ -n "$FIXED" ]] && ENTRY+=$'\n\n'"### Fixed${FIXED}"
 
-          # If no categorized commits, add a generic entry
           if [[ -z "$ADDED" && -z "$CHANGED" && -z "$FIXED" ]]; then
             ENTRY+=$'\n\n'"### Changed"$'\n'"- Version bump to ${NEW_VERSION}"
           fi
 
-          # Save for later steps
           echo "entry<<ENTRY_EOF" >> "$GITHUB_OUTPUT"
           echo "$ENTRY" >> "$GITHUB_OUTPUT"
           echo "ENTRY_EOF" >> "$GITHUB_OUTPUT"
 
-          # Save for release body
-          BODY_CONTENT="$ENTRY"
-          echo "body<<BODY_EOF" >> "$GITHUB_OUTPUT"
-          echo "$BODY_CONTENT" >> "$GITHUB_OUTPUT"
-          echo "BODY_EOF" >> "$GITHUB_OUTPUT"
-
       - name: Update plugin.json version
         run: |
-          NEW_VERSION="${{ steps.new.outputs.version }}"
+          NEW_VERSION="${{ steps.version.outputs.new }}"
           jq --arg v "$NEW_VERSION" '.version = $v' \
             structured-agentic-coding-plugin/.claude-plugin/plugin.json > tmp.json
           mv tmp.json structured-agentic-coding-plugin/.claude-plugin/plugin.json
@@ -117,7 +96,6 @@ jobs:
           CHANGELOG="structured-agentic-coding-plugin/CHANGELOG.md"
           ENTRY="${{ steps.changelog.outputs.entry }}"
 
-          # Insert new entry after "## [Unreleased]" line
           awk -v entry="$ENTRY" '
             /^## \[Unreleased\]/ {
               print
@@ -129,22 +107,61 @@ jobs:
           ' "$CHANGELOG" > tmp_changelog.md
           mv tmp_changelog.md "$CHANGELOG"
 
-      - name: Commit and tag
+      - name: Create release branch and push
         run: |
-          NEW_VERSION="${{ steps.new.outputs.version }}"
+          NEW_VERSION="${{ steps.version.outputs.new }}"
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
+          git checkout -b "release/v${NEW_VERSION}"
           git add structured-agentic-coding-plugin/.claude-plugin/plugin.json
           git add structured-agentic-coding-plugin/CHANGELOG.md
           git commit -m "release: v${NEW_VERSION}"
-          git tag "v${NEW_VERSION}"
-          git push origin main --tags
+          git push origin "release/v${NEW_VERSION}"
 
-      - name: Create GitHub Release
-        uses: softprops/action-gh-release@v2
+      - name: Create pull request
+        uses: actions/github-script@v7
         with:
-          tag_name: "v${{ steps.new.outputs.version }}"
-          name: "v${{ steps.new.outputs.version }}"
-          body: "${{ steps.changelog.outputs.body }}"
-          draft: false
-          prerelease: false
+          script: |
+            const newVersion = '${{ steps.version.outputs.new }}';
+            const entry = `${{ steps.changelog.outputs.entry }}`;
+
+            const pr = await github.rest.pulls.create({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              title: `release: v${newVersion}`,
+              head: `release/v${newVersion}`,
+              base: 'main',
+              body: [
+                `## Release v${newVersion}`,
+                '',
+                entry,
+                '',
+                '---',
+                '',
+                'Merging this PR will trigger the **Publish Release** workflow, which creates',
+                `the \`v${newVersion}\` tag and GitHub Release automatically.`,
+                '',
+                '> **Merge strategy:** Use **Squash and merge** and keep the PR title as the',
+                '> commit message so the publish workflow can detect it.',
+              ].join('\n'),
+            });
+
+            core.info(`Created PR #${pr.data.number}: ${pr.data.html_url}`);
+            core.summary.addRaw(`### Release PR created\n\n[PR #${pr.data.number}](${pr.data.html_url}) — merge it to publish v${newVersion}.`);
+            await core.summary.write();
+
+            // Enable auto-merge (requires "Allow auto-merge" in repo settings)
+            try {
+              await github.graphql(`
+                mutation EnableAutoMerge($pullRequestId: ID!) {
+                  enablePullRequestAutoMerge(input: {
+                    pullRequestId: $pullRequestId,
+                    mergeMethod: SQUASH
+                  }) { pullRequest { autoMergeRequest { mergeMethod } } }
+                }
+              `, { pullRequestId: pr.data.node_id });
+              core.info('Auto-merge enabled (squash)');
+            } catch (e) {
+              core.info(`Auto-merge not enabled: ${e.message}`);
+              core.info('Enable "Allow auto-merge" in repo Settings > General to use this feature.');
+            }
