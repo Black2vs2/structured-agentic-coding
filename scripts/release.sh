@@ -2,12 +2,6 @@
 # Usage: bash scripts/release.sh [patch|minor|major]
 set -euo pipefail
 
-# Load .env if present
-if [[ -f ".env" ]]; then
-  # shellcheck disable=SC1091
-  set -o allexport && source .env && set +o allexport
-fi
-
 TYPE="${1:-patch}"
 PLUGIN_JSON="structured-agentic-coding-plugin/.claude-plugin/plugin.json"
 CHANGELOG="structured-agentic-coding-plugin/CHANGELOG.md"
@@ -42,13 +36,6 @@ awk -v e="$ENTRY" '
 git add "$PLUGIN_JSON" "$CHANGELOG"
 git commit -m "release: v${NEW}"
 git tag "v${NEW}"
-
-if [[ -n "${GITHUB_TOKEN:-}" ]]; then
-  REMOTE=$(git remote get-url origin)
-  AUTH_REMOTE="${REMOTE/https:\/\//https:\/\/${GITHUB_TOKEN}@}"
-  git push "$AUTH_REMOTE" main --tags
-else
-  git push origin main --tags
-fi
+git push origin main --tags
 
 echo "Done — v${NEW} released"
