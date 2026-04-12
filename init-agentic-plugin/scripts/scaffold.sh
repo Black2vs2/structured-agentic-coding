@@ -168,7 +168,10 @@ if [[ "$PROFILE" == "angular-dotnet" ]]; then
     echo "APPEND: .claude/anti-patterns.md (profile anti-patterns)"
   fi
 
-  # OpenAPI sync command
+  # Profile-specific commands
+  copy_and_replace "$SCAFFOLD_DIR/profiles/angular-dotnet/commands/kill.md" \
+    "$TARGET_DIR/.claude/commands/kill.md"
+
   if [[ -n "$FE_DIR" && -n "$BE_DIR" ]]; then
     copy_and_replace "$SCAFFOLD_DIR/profiles/angular-dotnet/commands/openapi-sync.md" \
       "$TARGET_DIR/.claude/commands/openapi-sync.md"

@@ -13,7 +13,7 @@ A complete agentic development infrastructure for Claude Code. Scaffolds agents,
 | **Doc Enforcer** | Scans for missing module documentation |
 | **Research Agent** | Produces feature proposals with codebase analysis and industry research |
 | **Impact Analyst** | Traces ripple effects of proposed changes across all layers |
-| **Commands** | `/masterplan`, `/masterplan-review`, `/update-codemaps`, `/kill` |
+| **Commands** | `/masterplan`, `/masterplan-review`, `/update-codemaps` |
 | **Templates** | ARCHITECTURE.md and GUIDELINES.md templates for new modules |
 | **Anti-Patterns** | Living document of known failure modes |
 | **CLAUDE.md** | Root project config with commands, conventions, agent discovery |
@@ -34,6 +34,7 @@ A complete agentic development infrastructure for Claude Code. Scaffolds agents,
 | **Frontend Test Generator** | Generates Vitest unit tests for stores/services |
 | **E2E Agent** | Browser-based end-to-end testing via Playwright |
 | **OpenAPI Sync** | Regenerates frontend API client from backend spec |
+| **Kill Command** | `/kill` — Stop running dev servers (dotnet, Angular) |
 | **93 Frontend Rules** | Angular, Signals, State Management, Forms, i18n, Design System |
 | **67 Backend Rules** | Clean Architecture, EF Core, CQRS, Security, Testing |
 | **31 Scan Playbooks** | Automated grep-based code review patterns |
@@ -167,7 +168,7 @@ project-root/
 │   │   ├── masterplan.md
 │   │   ├── masterplan-review.md
 │   │   ├── update-codemaps.md
-│   │   └── kill.md
+│   │   └── kill.md                            # (angular-dotnet profile only)
 │   ├── rules/                             # (profile-specific)
 │   │   ├── fe-rules.json
 │   │   └── be-rules.json

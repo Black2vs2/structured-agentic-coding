@@ -16,7 +16,7 @@ Templates live in `.claude/scaffold/` relative to wherever this skill is install
 ├── base/                          # Always scaffolded
 │   ├── agents/codebase/           # Masterplan, codemap, doc-enforcer
 │   ├── agents/domain/             # Research, impact analyst
-│   ├── commands/                  # masterplan, update-codemaps, kill
+│   ├── commands/                  # masterplan, update-codemaps
 │   ├── templates/                 # ARCHITECTURE + GUIDELINES templates
 │   ├── CLAUDE.md                  # Root CLAUDE.md template
 │   ├── AGENTS.md                  # Agent manifest template
@@ -26,6 +26,7 @@ Templates live in `.claude/scaffold/` relative to wherever this skill is install
     ├── agents/backend/            # BE dev, reviewer, fixer, coverage
     ├── agents/frontend/           # FE dev, reviewer, fixer, test writer
     ├── agents/domain/             # BE/FE test generators, E2E agent
+    ├── commands/                  # kill, openapi-sync
     ├── scans/be-scans/            # 12 backend scan playbooks
     ├── scans/fe-scans/            # 19 frontend scan playbooks
     ├── rules/                     # fe-rules.json, be-rules.json
@@ -226,7 +227,7 @@ Show the script's output summary to the user, then append:
 - `/masterplan` — Design and execute a multi-step feature
 - `/masterplan-review` — Review a completed masterplan
 - `/update-codemaps` — Refresh structural documentation
-- `/kill` — Stop running dev servers
+- `/kill` — Stop running dev servers (angular-dotnet profile only)
 ```
 
 ## Important Rules
