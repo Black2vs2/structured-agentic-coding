@@ -1,6 +1,6 @@
 <div align="center">
 
-# Init Agentic
+# Structured Agentic Coding
 
 **Structured agent infrastructure for Claude Code projects.**
 
@@ -16,7 +16,7 @@
 Install one skill. Get a full team of specialized agents — architects, developers, reviewers, testers — wired together through masterplans, coding rules, and quality gates. Your AI coding sessions go from ad-hoc conversations to structured, traceable workflows.
 
 ```
-/init-agentic
+/structured-agentic-coding
 ```
 
 ## Why
@@ -28,7 +28,7 @@ AI coding assistants don't scale without structure. As projects grow:
 - There's no way to split work across specialized agents with clear responsibilities.
 - The same mistakes repeat because agents have no institutional memory.
 
-Init Agentic scaffolds a complete `.claude/` infrastructure into your project: agents that plan, build, review, and test — governed by explicit rules and connected through a masterplan workflow.
+Structured Agentic Coding scaffolds a complete `.claude/` infrastructure into your project: agents that plan, build, review, and test — governed by explicit rules and connected through a masterplan workflow.
 
 ## Quick Start
 
@@ -40,14 +40,14 @@ Init Agentic scaffolds a complete `.claude/` infrastructure into your project: a
 **1. Add the marketplace and install the plugin**
 
 ```
-/plugin marketplace add Black2vs2/black2vs2-agentic-coding
-/plugin install init-agentic@init-agentic
+/plugin marketplace add Black2vs2/structured-agentic-coding
+/plugin install structured-agentic-coding@structured-agentic-coding
 ```
 
 **2. Run the scaffold in your project**
 
 ```
-/init-agentic
+/structured-agentic-coding
 ```
 
 **3. Answer three questions** — project name (kebab-case), profile (`base` or `angular-dotnet`), and a one-line description.
@@ -63,25 +63,25 @@ Init Agentic scaffolds a complete `.claude/` infrastructure into your project: a
 That's it. Your project now has agents, rules, scan playbooks, and documentation templates ready to use.
 
 > [!TIP]
-> After scaffolding, all generated files live inside your project. You can uninstall the plugin with `/plugin uninstall init-agentic@init-agentic` — your project is fully self-contained.
+> After scaffolding, all generated files live inside your project. You can uninstall the plugin with `/plugin uninstall structured-agentic-coding@structured-agentic-coding` — your project is fully self-contained.
 
 ### Updating
 
 ```
-/plugin update init-agentic@init-agentic
+/plugin update structured-agentic-coding@structured-agentic-coding
 ```
 
-This pulls the latest templates, script, and profiles. Re-run `/init-agentic` to scaffold new files into your project — existing files are never overwritten.
+This pulls the latest templates, script, and profiles. Re-run `/structured-agentic-coding` to scaffold new files into your project — existing files are never overwritten.
 
 ### Option B — Manual clone
 
 If you prefer not to use the plugin system:
 
 ```bash
-git clone https://github.com/Black2vs2/black2vs2-agentic-coding.git ~/any/path/you/want
+git clone https://github.com/Black2vs2/structured-agentic-coding.git .
 ```
 
-Open Claude Code in your target project and run `/init-agentic`. Once scaffolding is complete, you can delete the cloned repo.
+Open Claude Code in your target project and run `/structured-agentic-coding`. Once scaffolding is complete, you can delete the cloned repo.
 
 ## Features
 
@@ -177,7 +177,7 @@ Contributions are welcome — new profiles, agents, scan playbooks, rules, and b
 1. Fork and clone the repository.
 2. Create a feature branch: `git checkout -b feat/your-feature`.
 3. Make your changes following the guidelines below.
-4. Test by running `/init-agentic` in a sample project.
+4. Test by running `/structured-agentic-coding` in a sample project.
 5. Submit a pull request.
 
 <details>
@@ -209,7 +209,7 @@ Contributions are welcome — new profiles, agents, scan playbooks, rules, and b
 1. Create `.claude/scaffold/profiles/<profile-name>/`.
 2. Add `agents/`, `scans/`, `rules/` subdirectories as needed.
 3. Add an `anti-patterns-profile.md` for stack-specific failure modes.
-4. Update the profile list in `.claude/commands/init-agentic.md` Phase 1.
+4. Update the profile list in `.claude/commands/structured-agentic-coding.md` Phase 1.
 5. Add detection logic for the new stack in Phase 2 of the init command.
 6. Document the profile in this README under [Supported Stacks](#supported-stacks).
 

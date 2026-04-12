@@ -1,13 +1,13 @@
 {
-  "name": "init-agentic",
+  "name": "structured-agentic-coding",
   "description": "Agent-driven development infrastructure for Claude Code projects — masterplans, coding rules, scan playbooks, and specialized agents.",
   "owner": {
     "name": "Black2vs2"
   },
   "plugins": [
     {
-      "name": "init-agentic",
-      "source": "./init-agentic-plugin",
+      "name": "structured-agentic-coding",
+      "source": "./structured-agentic-coding-plugin",
       "description": "Scaffold a complete agent-driven development infrastructure into any project — agents, rules, scan playbooks, masterplan workflows, and documentation templates."
     }
   ]
