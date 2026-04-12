@@ -1,16 +1,8 @@
 {
   "name": "structured-agentic-coding",
-  "version": "3.0.0",
+  "version": "3.1.0",
   "description": "Scaffold a complete agent-driven development infrastructure into any project — agents, rules, scan playbooks, masterplan workflows, and documentation templates.",
   "author": {
     "name": "Luca Sartori"
-  },
-  "hooks": {
-    "SessionStart": [
-      {
-        "type": "command",
-        "command": "bash \"${CLAUDE_PLUGIN_ROOT}/scripts/check-upgrade.sh\""
-      }
-    ]
   }
 }
