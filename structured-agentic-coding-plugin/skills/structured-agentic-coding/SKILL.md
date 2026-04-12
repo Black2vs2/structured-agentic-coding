@@ -214,6 +214,10 @@ Also create placeholder frontend/backend CODEMAPs if those directories exist:
 Show the script's output summary to the user, then append:
 
 ```
+### Manifest
+
+A scaffold manifest has been written to `.claude/scaffold-manifest.json`. This file tracks which plugin version generated your files and enables future upgrades via `/upgrade-agentic-coding`. Do not delete it. It is safe to commit.
+
 ### Next Steps
 
 1. **Review CLAUDE.md** — Verify the generated project documentation is accurate

@@ -1,0 +1,150 @@
+name: Release
+
+on:
+  workflow_dispatch:
+    inputs:
+      version_type:
+        description: 'Release type (semver)'
+        required: true
+        type: choice
+        options:
+          - patch
+          - minor
+          - major
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Install jq
+        run: sudo apt-get install -y jq
+
+      - name: Read current version
+        id: current
+        run: |
+          VERSION=$(jq -r '.version' structured-agentic-coding-plugin/.claude-plugin/plugin.json)
+          echo "version=$VERSION" >> "$GITHUB_OUTPUT"
+          echo "Current version: $VERSION"
+
+      - name: Compute new version
+        id: new
+        run: |
+          CURRENT="${{ steps.current.outputs.version }}"
+          IFS='.' read -r MAJOR MINOR PATCH <<< "$CURRENT"
+
+          case "${{ inputs.version_type }}" in
+            major) MAJOR=$((MAJOR + 1)); MINOR=0; PATCH=0 ;;
+            minor) MINOR=$((MINOR + 1)); PATCH=0 ;;
+            patch) PATCH=$((PATCH + 1)) ;;
+          esac
+
+          NEW_VERSION="${MAJOR}.${MINOR}.${PATCH}"
+          echo "version=$NEW_VERSION" >> "$GITHUB_OUTPUT"
+          echo "New version: $NEW_VERSION"
+
+      - name: Generate changelog entry
+        id: changelog
+        run: |
+          NEW_VERSION="${{ steps.new.outputs.version }}"
+          CURRENT_VERSION="${{ steps.current.outputs.version }}"
+          TODAY=$(date +%Y-%m-%d)
+
+          # Get commits since last tag (or all commits if no tag exists)
+          LAST_TAG=$(git tag --sort=-v:refname | head -1 || true)
+          if [[ -n "$LAST_TAG" ]]; then
+            RANGE="${LAST_TAG}..HEAD"
+          else
+            RANGE="HEAD"
+          fi
+
+          # Categorize commits
+          ADDED=""
+          CHANGED=""
+          FIXED=""
+
+          while IFS= read -r msg; do
+            [[ -z "$msg" ]] && continue
+            # Strip conventional commit prefix for display
+            clean_msg=$(echo "$msg" | sed 's/^[a-z]*([^)]*): //' | sed 's/^[a-z]*: //')
+            if echo "$msg" | grep -qE '^feat(\(|:)'; then
+              ADDED+=$'\n'"- $clean_msg"
+            elif echo "$msg" | grep -qE '^fix(\(|:)'; then
+              FIXED+=$'\n'"- $clean_msg"
+            elif echo "$msg" | grep -qE '^(refactor|perf|style)(\(|:)'; then
+              CHANGED+=$'\n'"- $clean_msg"
+            fi
+          done < <(git log "$RANGE" --pretty=format:"%s" -- structured-agentic-coding-plugin/)
+
+          # Build changelog section
+          ENTRY="## [${NEW_VERSION}] - ${TODAY}"
+          [[ -n "$ADDED" ]] && ENTRY+=$'\n\n'"### Added${ADDED}"
+          [[ -n "$CHANGED" ]] && ENTRY+=$'\n\n'"### Changed${CHANGED}"
+          [[ -n "$FIXED" ]] && ENTRY+=$'\n\n'"### Fixed${FIXED}"
+
+          # If no categorized commits, add a generic entry
+          if [[ -z "$ADDED" && -z "$CHANGED" && -z "$FIXED" ]]; then
+            ENTRY+=$'\n\n'"### Changed"$'\n'"- Version bump to ${NEW_VERSION}"
+          fi
+
+          # Save for later steps
+          echo "entry<<ENTRY_EOF" >> "$GITHUB_OUTPUT"
+          echo "$ENTRY" >> "$GITHUB_OUTPUT"
+          echo "ENTRY_EOF" >> "$GITHUB_OUTPUT"
+
+          # Save for release body
+          BODY_CONTENT="$ENTRY"
+          echo "body<<BODY_EOF" >> "$GITHUB_OUTPUT"
+          echo "$BODY_CONTENT" >> "$GITHUB_OUTPUT"
+          echo "BODY_EOF" >> "$GITHUB_OUTPUT"
+
+      - name: Update plugin.json version
+        run: |
+          NEW_VERSION="${{ steps.new.outputs.version }}"
+          jq --arg v "$NEW_VERSION" '.version = $v' \
+            structured-agentic-coding-plugin/.claude-plugin/plugin.json > tmp.json
+          mv tmp.json structured-agentic-coding-plugin/.claude-plugin/plugin.json
+
+      - name: Update CHANGELOG.md
+        run: |
+          CHANGELOG="structured-agentic-coding-plugin/CHANGELOG.md"
+          ENTRY="${{ steps.changelog.outputs.entry }}"
+
+          # Insert new entry after "## [Unreleased]" line
+          awk -v entry="$ENTRY" '
+            /^## \[Unreleased\]/ {
+              print
+              print ""
+              print entry
+              next
+            }
+            { print }
+          ' "$CHANGELOG" > tmp_changelog.md
+          mv tmp_changelog.md "$CHANGELOG"
+
+      - name: Commit and tag
+        run: |
+          NEW_VERSION="${{ steps.new.outputs.version }}"
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add structured-agentic-coding-plugin/.claude-plugin/plugin.json
+          git add structured-agentic-coding-plugin/CHANGELOG.md
+          git commit -m "release: v${NEW_VERSION}"
+          git tag "v${NEW_VERSION}"
+          git push origin main --tags
+
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: "v${{ steps.new.outputs.version }}"
+          name: "v${{ steps.new.outputs.version }}"
+          body: "${{ steps.changelog.outputs.body }}"
+          draft: false
+          prerelease: false
