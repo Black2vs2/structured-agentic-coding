@@ -7,9 +7,9 @@ effort: medium
 
 You execute masterplan files by working through tasks sequentially, dispatching dev agents for implementation, and verifying quality at every step.
 
-## Context Already Available
+## Codebase Navigation
 
-Your system prompt contains the project CODEMAPs. Do NOT read codemap files — they are already loaded.
+MCP graph tools are available for structural queries when needed. Agents dispatched by you can also use these tools.
 
 ## Tools
 
@@ -96,7 +96,23 @@ Within each batch, check the `Files:` fields for overlap:
 
 #### 2b. Execute Each Batch
 
+**Batch QC Gate (for repetitive phases):**
+If a phase has 3+ tasks with the same scope and similar structure (e.g., 5 handler tasks, 4 component tasks):
+1. Execute ONLY the first task in the batch
+2. Run targeted review (step 2c) on it
+3. If review FAILS → STOP all remaining tasks in this batch. Fix the approach before continuing. Do not repeat a flawed pattern across all tasks.
+4. If review PASSES → proceed with remaining tasks in the batch
+
+This prevents multiplying a wrong approach across many tasks.
+
 For each task in the batch, dispatch the appropriate agent. The prompt structure depends on scope:
+
+**Model routing by Bloom level:**
+If the task has a `Bloom:` field, use it to select the model for the dispatched agent:
+- L1-L2 → dispatch with `model: haiku` (cheapest, sufficient for mechanical tasks)
+- L3-L4 → dispatch with `model: sonnet` (balanced, good for pattern-following)
+- L5-L6 → dispatch with `model: opus` (strongest, needed for complex reasoning)
+- If no Bloom field → use the agent's default model from its frontmatter
 
 **For scope `be`:**
 
@@ -128,8 +144,7 @@ Anti-patterns — do NOT do these:
 {backend + general anti-patterns from .claude/anti-patterns.md}
 
 Read these docs before writing code:
-  {ARCHITECTURE.md paths from CODEMAP Documentation Index relevant to the task}
-  {GUIDELINES.md paths from CODEMAP Documentation Index relevant to the task}
+  {ARCHITECTURE.md and GUIDELINES.md paths relevant to the task — discover via get_module_summary or Glob}
 
 Build and verify:
   Build: __BE_BUILD__
@@ -181,8 +196,7 @@ Anti-patterns — do NOT do these:
 {frontend + general anti-patterns from .claude/anti-patterns.md}
 
 Read these docs before writing code:
-  {ARCHITECTURE.md paths from CODEMAP Documentation Index relevant to the task}
-  {GUIDELINES.md paths from CODEMAP Documentation Index relevant to the task}
+  {ARCHITECTURE.md and GUIDELINES.md paths relevant to the task — discover via get_module_summary or Glob}
 
 Build and verify:
   Build: __FE_BUILD__
@@ -272,26 +286,74 @@ Output a brief summary: PASS (no blocking issues) or FAIL with issue list.
 ")
 ```
 
-#### 2d. Fix Loop
+**Cross-Model Review (Optional):**
+
+If the project has an external model MCP configured (llm-chat, codex-review, gemini-review) AND the current phase has Bloom L4+ tasks, dispatch the review to the external model for adversarial feedback:
+
+- Pass ONLY file paths and task description to the reviewer — NEVER executor summaries, interpretations, or previous review feedback
+- The reviewer reads raw code and forms its own assessment
+- Mark the review as `reviewer: external ({model_name})` vs `reviewer: internal`
+
+If no external model is configured, use the standard same-model review (current behavior).
+
+**Multi-Review Aggregation (for critical phases):**
+
+If a phase is marked as `critical: true` in the masterplan OR contains Bloom L5-L6 tasks:
+1. Run the targeted review 3 times (3 separate dispatches)
+2. Merge findings: a finding reported by 2+ out of 3 reviews is `confirmed`. A finding in only 1 review is `possible`.
+3. Report merged findings:
+   - `confirmed` (2-3 reviews agree): treat as blocking
+   - `possible` (1 review only): treat as warning, human decides
+
+Based on SWR-Bench data showing +43.67% F1 improvement from multi-review aggregation.
+
+For non-critical phases, single review is sufficient.
+
+#### 2d. Fix Loop (with Circuit Breaker)
 
 If review reports FAIL, dispatch the scope's **Fixer agent**:
-- Scope `be` -> **Backend Fixer**
-- Scope `fe` -> **Frontend Fixer**
+- Scope `be` → **Backend Fixer**
+- Scope `fe` → **Frontend Fixer**
 
 ```
 iteration = 0
+same_error_count = 0
+last_error = ""
 while FAIL and iteration < 3:
-    Dispatch the scope's fixer agent with the issue list and the rules that were violated
+    Dispatch fixer with issue list and violated rules
     Re-run targeted review (step 2c)
+    
+    # Circuit breaker: detect same error repeating
+    current_error = first issue from review
+    if current_error == last_error:
+        same_error_count += 1
+    else:
+        same_error_count = 0
+        last_error = current_error
+    
+    # Break if same error persists (approach is wrong, not just buggy)
+    if same_error_count >= 2:
+        STOP: "Same error persists after 2 fix attempts. Approach may be fundamentally wrong."
+        Escalate to user with: error description, what was tried, suggested alternative approach
+        break
+    
     iteration++
-if still FAIL:
-    STOP and escalate to user
+
+if still FAIL after 3 iterations:
+    Escalate to user
 ```
 
-#### 2e. Mark Tasks Complete
+The circuit breaker catches situations where the fixer keeps making the same mistake — indicating the approach needs changing, not just fixing.
 
-After all tasks in the batch pass review, edit the masterplan file:
-- Change `- [ ]` to `- [x]` for each completed task using the Edit tool
+#### 2e. Purpose Validation & Mark Complete
+
+Before marking any task as complete:
+1. Re-read the task's `Details:` WHAT field and `Accept:` criteria
+2. Verify the deliverable actually achieves the stated purpose:
+   - Are ALL acceptance criteria met?
+   - Does the output match WHAT was requested (not just GUARD compliance)?
+3. If any acceptance criterion fails → dispatch fixer with the specific failing criterion
+4. Only after all criteria pass → change `- [ ]` to `- [x]` for each completed task using the Edit tool
 
 #### 2f. Phase Verification
 
@@ -344,11 +406,14 @@ git commit -m "{commit message from masterplan}"
 
 After all implementation phases are committed:
 
-1. **Dispatch Codemap Updater:** Via Agent tool, run the codemap updater agent in incremental mode to update all structural documentation.
-
-2. **Commit codemap changes:**
+1. **Regenerate agent manifest:**
    ```bash
-   git add -A && git commit -m "docs: update codemaps and agent manifest"
+   bash .claude/scripts/regenerate-agents-md.sh
+   ```
+
+2. **Commit manifest changes:**
+   ```bash
+   git add .claude/AGENTS.md && git commit -m "docs: update agent manifest"
    ```
 
 3. **Dispatch Masterplan Reviewer:** Via Agent tool, run the masterplan reviewer agent with this masterplan's path. It will verify implementation against the plan, write its report, and may update `.claude/anti-patterns.md`.
