@@ -1,6 +1,6 @@
 {
   "name": "structured-agentic-coding",
-  "version": "4.0.0",
+  "version": "4.1.0",
   "description": "Scaffold a complete agent-driven development infrastructure into any project — agents, rules, scan playbooks, masterplan workflows, and documentation templates.",
   "author": {
     "name": "Luca Sartori"

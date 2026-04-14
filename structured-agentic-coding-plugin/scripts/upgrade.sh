@@ -69,13 +69,14 @@ done
 
 # --- Read manifest ---
 MANIFEST=$(cat "$MANIFEST_PATH")
-PROFILE=$(echo "$MANIFEST" | jq -r '.profile')
+PROFILE=$(echo "$MANIFEST" | jq -r '.profile' | tr -d '\r')
 
 # Read placeholders into associative array
+# Note: tr -d '\r' strips Windows CR that jq may emit, preventing \r in filenames
 declare -A PLACEHOLDERS
 while IFS=$'\t' read -r key value; do
   PLACEHOLDERS["$key"]="$value"
-done < <(echo "$MANIFEST" | jq -r '.placeholders | to_entries[] | [.key, .value] | @tsv')
+done < <(echo "$MANIFEST" | jq -r '.placeholders | to_entries[] | [.key, .value] | @tsv' | tr -d '\r')
 
 PLACEHOLDERS["PLUGIN_DIR"]="$PLUGIN_DIR"
 
@@ -107,7 +108,8 @@ render_template() {
   local src="$1"
   local tmp
   tmp=$(mktemp "$TEMP_DIR/template.XXXXXX")
-  cp "$src" "$tmp"
+  # Normalize line endings to LF (scaffold templates may have CRLF on Windows)
+  tr -d '\r' < "$src" > "$tmp"
 
   for key in "${!PLACEHOLDERS[@]}"; do
     local token="__${key}__"
@@ -428,11 +430,11 @@ while IFS=$'\t' read -r target_rel hash source_rel category; do
     REMOVED_UPSTREAM=$((REMOVED_UPSTREAM + 1))
     printf '%s\t%s\t%s\t%s\n' "$target_rel" "$hash" "$source_rel" "$category" >> "$NEW_MANIFEST_ENTRIES"
   fi
-done < <(echo "$MANIFEST" | jq -r '.files | to_entries[] | [.key, .value.hash, .value.source, .value.category] | @tsv')
+done < <(echo "$MANIFEST" | jq -r '.files | to_entries[] | [.key, .value.hash, .value.source, .value.category] | @tsv' | tr -d '\r')
 
 # --- Update manifest ---
 TIMESTAMP=$(date -u +"%Y-%m-%dT%H:%M:%SZ")
-SCAFFOLD_AT=$(echo "$MANIFEST" | jq -r '.scaffoldedAt')
+SCAFFOLD_AT=$(echo "$MANIFEST" | jq -r '.scaffoldedAt' | tr -d '\r')
 
 # Build new files JSON from entries using jq (handles escaping correctly)
 files_array="[]"

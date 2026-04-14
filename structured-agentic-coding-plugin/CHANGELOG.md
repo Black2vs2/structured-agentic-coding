@@ -6,6 +6,26 @@ Versioning: [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+## [4.1.0] - 2026-04-14
+
+### Added
+- Masterplan skills: `/masterplan`, `/masterplan-architect`, `/masterplan-executor`, `/masterplan-review`
+- Orchestrator routes subcommands: architect/design/plan, execute/run, review/audit, resume
+- Architect runs in main conversation context (interactive Q&A)
+- Executor and reviewer spawn as agents (automated, long-running)
+- Fallback architect procedure when project not scaffolded
+- CLAUDE.md template now documents masterplan slash commands
+
+### Fixed
+- Windows CRLF handling in upgrade script (jq output, template rendering)
+- Plugin discovery uses `sort -V | tail -1` instead of `head -1` for version ordering
+- Upgrade skill documents all required placeholders for angular-dotnet profile
+
+## [4.0.0] - 2026-04-13
+
+### Changed
+- Breaking: MCP graph tools replaced with CLI (`sac-graph`) — agents updated
+
 ## [3.2.0] - 2026-04-12
 
 ## [3.1.0] - 2026-04-12

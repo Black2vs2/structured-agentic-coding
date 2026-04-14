@@ -25,8 +25,8 @@ cat .claude/scaffold-manifest.json
 Extract the `version` field from the manifest. Then find the plugin's current version:
 
 ```bash
-# Find the plugin root
-PLUGIN_ROOT=$(find ~/.claude/plugins -name "plugin.json" -path "*/structured-agentic-coding*" -exec dirname {} \; 2>/dev/null | head -1)
+# Find the plugin root (use sort -V to pick the highest version, not just the first match)
+PLUGIN_ROOT=$(find ~/.claude/plugins -name "plugin.json" -path "*/structured-agentic-coding*" -exec dirname {} \; 2>/dev/null | sort -V | tail -1)
 PLUGIN_ROOT=$(dirname "$PLUGIN_ROOT")
 cat "$PLUGIN_ROOT/.claude-plugin/plugin.json"
 ```
@@ -110,7 +110,7 @@ Wait for the user's choice. If no files are modified, skip this question and pro
 Find the upgrade script and scaffold directory:
 
 ```bash
-UPGRADE_SCRIPT=$(find ~/.claude/plugins -name "upgrade.sh" -path "*/structured-agentic-coding*" 2>/dev/null | head -1)
+UPGRADE_SCRIPT=$(find ~/.claude/plugins -name "upgrade.sh" -path "*/structured-agentic-coding*" 2>/dev/null | sort -V | tail -1)
 SCAFFOLD_DIR=$(dirname "$UPGRADE_SCRIPT")/../.claude/scaffold
 ```
 
@@ -211,6 +211,14 @@ If the user agrees:
 1. Ask for the original plugin version (default: `1.0.0`)
 2. Ask for the profile used (`base` or `angular-dotnet`)
 3. Scan `.claude/agents/`, `.claude/commands/`, etc. to find scaffolded files
-4. Read `CLAUDE.md` to extract placeholder values (PREFIX, PROJECT_NAME, etc.)
+4. Read `CLAUDE.md` to extract ALL placeholder values. The manifest must include every placeholder the templates use, or the upgrade script will leave `__PLACEHOLDER__` tokens in output files. Required placeholders for `angular-dotnet`:
+   - `PREFIX` — agent filename prefix (e.g. `recruitadev`)
+   - `PROJECT_NAME` — display name (e.g. `RecruitADev`)
+   - `PROJECT_DESC` — short description (e.g. `recruitment management platform`)
+   - `BE_DIR` — backend directory (e.g. `backend`)
+   - `FE_DIR` — frontend directory (e.g. `frontend`)
+   - `BE_RUN`, `BE_BUILD`, `BE_TEST`, `BE_FORMAT`, `BE_SLN`, `BE_API_PROJECT`, `BE_NAMESPACE`
+   - `FE_SERVE`, `FE_BUILD`, `FE_TEST`, `FE_FORMAT`, `FE_LINT`
+   - `DB_START`, `MIGRATION`, `E2E_CMD`
 5. Hash all found files and generate the manifest
 6. Then proceed with the normal upgrade flow

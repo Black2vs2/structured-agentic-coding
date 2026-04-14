@@ -47,11 +47,17 @@ Before dispatching work, orchestrator agents MUST:
 4. Choose the right agent based on the task requirements
 
 ## Masterplan System
-For multi-step features, use the masterplan workflow:
-- Say "Add [feature]" or "Build [feature]" to trigger the architect agent
-- Architect asks questions, designs a structured masterplan at `docs/masterplans/`
-- Executor dispatches dev agents per task, reviews incrementally, commits per phase
-- Resume interrupted masterplans with "resume masterplan"
+For multi-step features, use the masterplan workflow via slash commands:
+- `/masterplan architect <feature>` — design a masterplan through interactive Q&A
+- `/masterplan execute <path>` — execute a masterplan file with dev agents
+- `/masterplan review <path>` — audit a completed masterplan against the repo
+- `/masterplan resume` — find and resume the most recent incomplete masterplan
+- `/masterplan <feature>` — full lifecycle: architect → confirm → execute
+
+Also triggers on: "Add [feature]", "Build [feature]", "Implement [feature]"
+
+Agent definitions: `.claude/agents/codebase/*-masterplan-{architect,executor,reviewer}.md`
+Masterplans: `docs/masterplans/` | Executed: `docs/masterplans/executed/`
 
 ## Commands
 - Frontend dev: `__FE_SERVE__`
