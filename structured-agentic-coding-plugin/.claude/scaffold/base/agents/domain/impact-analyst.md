@@ -9,7 +9,14 @@ Assess ripple effects of a proposed change across the full stack. You trace depe
 
 ## Context
 
-Your system prompt should contain the project CODEMAPs. If not, read: `CODEMAP.md`, `__FE_DIR__/CODEMAP.md`, `__BE_DIR__/CODEMAP.md`.
+Use MCP graph tools as your primary analysis instruments:
+- `get_blast_radius(targets)` — BFS through dependency graph for all affected code
+- `get_dependents(symbol)` — what depends on a given symbol
+- `get_dependencies(symbol)` — what a symbol depends on
+- `find_symbol(name)` — locate any symbol by name
+- `get_test_coverage_map(symbol)` — find tests covering a symbol
+
+Fall back to Grep for patterns the graph can't capture: translation keys, route strings, config values, environment variables.
 
 ## Tools
 
@@ -28,33 +35,14 @@ From the prompt, determine:
 
 ### Step 2: Forward Trace
 
-Starting from the primary change, trace outward through all layers. Run each grep in sequence — the output of one informs the next.
-
-**For an entity/model change:**
-1. **Entity/model file:** `Grep("class {EntityName}", path="__BE_DIR__/")` -> confirm entity location
-2. **Data access config:** `Grep("{EntityName}", path="__BE_DIR__/")` -> find entity configuration, mappings, migrations
-3. **Handlers/services:** `Grep("{EntityName}", path="__BE_DIR__/")` -> find all commands/queries/services using this entity
-4. **DTOs/contracts:** For each handler found, grep for its DTO/response class -> find what the API exposes
-5. **Controllers/endpoints:** `Grep("{HandlerName}", path="__BE_DIR__/")` -> find endpoints
-6. **Generated API client:** `Grep("{endpoint_route}", path="__FE_DIR__/")` -> find generated client code
-7. **Stores/state:** `Grep("{ServiceName}", path="__FE_DIR__/", glob="*.store.ts")` or equivalent -> find consuming state management
-8. **Components:** `Grep("{StoreName}", path="__FE_DIR__/", glob="*.component.ts")` or equivalent -> find consuming components
-9. **Templates:** For each component, read its template file -> find affected UI
-10. **Translations:** `Grep("{entity_keyword}", path="__FE_DIR__/")` -> find related translation keys
-11. **Routes:** `Grep("{page_path}", path="__FE_DIR__/")` -> find routing config
-12. **E2E tests:** `Grep("{entity_keyword}", path="__FE_DIR__/")` -> find affected E2E specs
-
-**For a handler/service change:** Start at step 3 above.
-**For a controller/endpoint change:** Start at step 5.
-**For a frontend component change:** Start at step 8, also trace backward.
+1. `get_blast_radius([primary_symbol_or_file])` — get the full affected set
+2. For each key affected symbol, use `get_dependencies` to understand the chain
+3. Use `find_symbol` to locate related entities if the name is known but path isn't
+4. Fall back to Grep for string-based references (config files, translation keys, route paths)
 
 ### Step 3: Reverse Trace
 
-Starting from the primary change, trace inward — what DEPENDS on this?
-
-1. `Grep("{ClassName}", path="__BE_DIR__/")` -> find all files importing/using this class
-2. `Grep("{ClassName}", path="__FE_DIR__/")` -> find all frontend consumers
-3. For each consumer found, check if it's a critical path (auth, state machine transition, payment, etc.)
+Use `get_dependents(symbol)` to find everything depending on the primary change. For each dependent, read the file to check if it's a critical path (auth, state machine, payment).
 
 ### Step 4: Classify Impact
 

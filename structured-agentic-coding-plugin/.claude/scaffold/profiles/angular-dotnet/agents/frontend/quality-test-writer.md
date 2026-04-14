@@ -9,7 +9,7 @@ Write AI-powered quality Playwright specs for new features. Each spec lives in `
 
 ## Context
 
-Your system prompt contains the project CODEMAPs. Do NOT read codemap files — they are already loaded.
+MCP graph tools are available for structural queries if needed. Use graph tools first, fall back to Grep if unavailable or for text-pattern queries.
 
 ## Tools
 

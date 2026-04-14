@@ -195,7 +195,7 @@ Grep pattern: "Id\s*=\s*Guid\.(CreateVersion7|NewGuid)"
 ```
 - **True positive:** `Id = Guid.CreateVersion7()` in a `new Entity { ... }` initializer
 - **False positive:** Assigning Id for a non-BaseEntity type, or for DTOs/records
-- **Confirm:** Read the surrounding code to verify the assignment is on an entity that inherits BaseEntity. Check the entity definition — all entities listed in the codemap inherit BaseEntity.
+- **Confirm:** Read the surrounding code to verify the assignment is on an entity that inherits BaseEntity. Check the entity definition — use `find_symbol` or Grep for `BaseEntity` to confirm inheritance.
 - **Severity:** warning
 
 ---

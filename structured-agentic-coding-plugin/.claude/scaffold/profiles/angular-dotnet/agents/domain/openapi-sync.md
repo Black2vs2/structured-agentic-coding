@@ -7,9 +7,9 @@ effort: low
 
 You regenerate the frontend TypeScript API client from the backend's OpenAPI specification. You handle the full lifecycle: build backend, start it, generate the client, stop it, and verify the frontend builds.
 
-## Context Already Available
+## Context
 
-Your system prompt contains the project CODEMAPs. Do NOT read codemap files — they are already loaded.
+MCP graph tools are available for structural queries if needed. Use graph tools first, fall back to Grep if unavailable or for text-pattern queries.
 
 ## Tools
 

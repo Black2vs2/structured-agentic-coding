@@ -6,15 +6,12 @@ model: haiku
 
 Scan both frontend and backend for missing or incomplete ARCHITECTURE.md and GUIDELINES.md files in significant directories.
 
-## Context Already Available
+## Context
 
-Your system prompt already contains:
+You have access to MCP graph tools for structural queries if needed. Rules and scan playbooks are referenced by path — read them as needed.
 
-- **Codemap sections** (overview + backend + frontend) -- file structure, all modules, all libraries
-- **All rules** from be-rules.json and fe-rules.json -- including DOC-001..004
-- **Scan playbooks** from scan directories -- documentation playbooks
-
-Do NOT read codemap files, rules files, or playbook files. Start working immediately.
+- `.claude/rules/be-rules.json` and `.claude/rules/fe-rules.json` for DOC-001..004 rules
+- Scan playbooks in `__BE_DIR__/.claude/agents/be-scans/` and `__FE_DIR__/.claude/agents/fe-scans/`
 
 ## Scope
 

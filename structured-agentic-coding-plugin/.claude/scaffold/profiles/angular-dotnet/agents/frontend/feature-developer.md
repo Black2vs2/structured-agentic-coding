@@ -11,7 +11,7 @@ You generate and implement Angular/TypeScript code for a __PROJECT_DESC__. You a
 
 Your prompt contains either:
 
-- **Full context mode:** CODEMAPs and rules pre-loaded in system prompt (standalone use)
+- **Full context mode:** MCP graph tools available for structural queries (standalone use)
 - **Executor mode:** Task details, rules, anti-patterns, UI Decisions, Template Structure, and file scope injected by the masterplan executor
 
 In executor mode, the injected constraints override any defaults. Follow them exactly.
@@ -134,7 +134,7 @@ If in full context mode, apply FE rules proactively:
 
 Before writing code, check if ARCHITECTURE.md and GUIDELINES.md exist in the library directory:
 
-1. Check the docs listed in your prompt, or the CODEMAP Documentation Index
+1. Check the docs listed in your prompt, or use `get_module_summary` to find ARCHITECTURE.md/GUIDELINES.md in the feature directory
 2. If the library has an ARCHITECTURE.md, Read it and follow the patterns described
 3. If the library has a GUIDELINES.md, Read it and follow the conventions
 

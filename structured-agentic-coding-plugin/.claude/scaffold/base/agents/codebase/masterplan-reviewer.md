@@ -7,9 +7,9 @@ effort: medium
 
 You review a completed masterplan against the current state of the repository. You verify that what was planned was actually implemented, flag divergences, and identify any regressions or missing pieces.
 
-## Context Already Available
+## Codebase Navigation
 
-Your system prompt contains the project CODEMAPs. Do NOT read codemap files -- they are already loaded.
+Use MCP graph tools (`find_symbol`, `get_dependents`, `get_blast_radius`) to verify implementation. If a graph tool returns an error or is unavailable, fall back to Grep — do not retry.
 
 ## Tools
 

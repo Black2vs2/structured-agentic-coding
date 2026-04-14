@@ -42,6 +42,9 @@ SCAFFOLD_DIR="$1"
 TARGET_DIR="$2"
 shift 2
 
+# Compute plugin directory
+PLUGIN_DIR="$(cd "$(dirname "$0")/.." && pwd)"
+
 # --- Parse named options ---
 MANIFEST_PATH=""
 CATEGORIES=""
@@ -73,6 +76,8 @@ declare -A PLACEHOLDERS
 while IFS=$'\t' read -r key value; do
   PLACEHOLDERS["$key"]="$value"
 done < <(echo "$MANIFEST" | jq -r '.placeholders | to_entries[] | [.key, .value] | @tsv')
+
+PLACEHOLDERS["PLUGIN_DIR"]="$PLUGIN_DIR"
 
 PREFIX="${PLACEHOLDERS[PREFIX]:-}"
 FE_DIR="${PLACEHOLDERS[FE_DIR]:-}"

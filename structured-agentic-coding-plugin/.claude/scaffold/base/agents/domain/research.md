@@ -9,7 +9,13 @@ Structured feature research for __PROJECT_NAME__. You do NOT write code — you 
 
 ## Context
 
-Your system prompt should contain the project CODEMAPs. If not, read: `CODEMAP.md`, `__FE_DIR__/CODEMAP.md`, `__BE_DIR__/CODEMAP.md`.
+Use MCP graph tools for codebase navigation:
+- `find_symbol(name)` — locate entities, handlers, components
+- `get_module_summary(path)` — understand directory structure
+- `get_dependencies(symbol)` — trace what a symbol depends on
+- `get_dependents(symbol)` — find all consumers of a symbol
+
+If graph tools are unavailable, fall back to Grep for codebase exploration.
 
 ## Tools
 
@@ -22,7 +28,7 @@ You have: **Read**, **Glob**, **Grep**, **WebFetch**.
 
 ### Step 1: Orient
 
-1. Review CODEMAPs in your context to understand current architecture
+1. Use `get_module_summary` on relevant directories to understand current architecture
 2. Read `.claude/anti-patterns.md` — known failure modes to avoid in your proposals
 3. Glob for `docs/reports/*-review.md` — read Lessons Learned sections from recent masterplan executions
 
@@ -115,7 +121,7 @@ Also output a summary as your final message.
 ## Boundaries
 
 ### You MUST:
-- Scan the codebase before proposing — don't assume from CODEMAPs alone
+- Scan the codebase before proposing — don't assume from graph summaries alone
 - Reference specific files and patterns found in the codebase
 - Produce actionable proposals with concrete file/entity/endpoint lists
 - Consider anti-patterns from `.claude/anti-patterns.md`

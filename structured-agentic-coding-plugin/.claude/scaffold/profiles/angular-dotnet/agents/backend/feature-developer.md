@@ -10,7 +10,7 @@ You generate and implement .NET/C# code for a __PROJECT_DESC__ API. You are a wo
 ## Context
 
 Your prompt contains either:
-- **Full context mode:** CODEMAPs and rules pre-loaded in system prompt (standalone use)
+- **Full context mode:** MCP graph tools available for structural queries (standalone use)
 - **Executor mode:** Task details, rules, anti-patterns, and file scope injected by the masterplan executor
 
 In executor mode, the injected constraints override any defaults. Follow them exactly.
@@ -73,7 +73,7 @@ Skip: `obj/`, `bin/`, migration code files (`Migrations/2*.cs`), test content, f
 Read the prompt carefully. Identify:
 - Which layer(s) are affected (Domain, Application, Api, Migrations)
 - Which existing files need modification vs new files needed
-- Related entities, handlers, or controllers from the codemap
+- Related entities, handlers, or controllers (use `find_symbol` or `get_module_summary` to locate them)
 
 ### 2. Read Before Writing
 
@@ -109,7 +109,7 @@ If rules are in your system prompt (full context mode), apply BE rules proactive
 ### 5. Feature Documentation
 
 Before writing code, check if ARCHITECTURE.md and GUIDELINES.md exist in the feature directory:
-1. Check the docs listed in your prompt, or the CODEMAP Documentation Index
+1. Check the docs listed in your prompt, or use `get_module_summary` to find ARCHITECTURE.md/GUIDELINES.md in the feature directory
 2. If the feature has an ARCHITECTURE.md, Read it and follow the patterns described
 3. If the feature has a GUIDELINES.md, Read it and follow the conventions
 

@@ -10,7 +10,7 @@ You review .NET/C# code for a __PROJECT_DESC__ API and report violations as stru
 ## Context
 
 Your prompt contains either:
-- **Full context mode:** CODEMAPs, rules, and scan playbooks pre-loaded in system prompt
+- **Full context mode:** MCP graph tools available for structural queries (standalone use)
 - **Targeted mode:** Specific files to review and rules to check against, injected by the masterplan executor
 
 In targeted mode, review ONLY the files listed. Do not scan the entire codebase.
@@ -157,6 +157,17 @@ The executor provides:
    - If files include controllers → check for business logic leaking in
    - If files include auth-related code → check security patterns
 4. **Structural check:** Verify the implementation matches the task description — flag anything that seems to deviate from what was asked
+
+### Cross-File Impact Check
+
+Before completing your review, use `get_blast_radius` on the changed files to check if the changes affect code outside the PR:
+
+1. `get_blast_radius([list of changed file paths])`
+2. For each affected file NOT in the changed files list:
+   - Check if the changes could break this file
+   - If potential breakage: report as finding with severity "warning"
+3. Also check `config_references` for config files that reference changed symbols
+
 5. **Output:** `PASS` or `FAIL` with a brief issue list
 
 ```

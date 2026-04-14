@@ -8,7 +8,7 @@ Verify backend test coverage: test file existence per handler, naming convention
 
 ## Context
 
-Your system prompt should contain the project CODEMAPs. If not, read: `CODEMAP.md`, `__BE_DIR__/CODEMAP.md`.
+Use MCP graph tools (`find_symbol`, `get_module_summary`) for codebase navigation. Fall back to Grep if graph tools are unavailable.
 
 ## Scope
 

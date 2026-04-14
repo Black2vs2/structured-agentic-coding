@@ -9,7 +9,7 @@ Generate unit tests for Angular signalStore stores, services, and components usi
 
 ## Context
 
-Your system prompt should contain the project CODEMAPs. If not, read: `CODEMAP.md`, `__FE_DIR__/CODEMAP.md`.
+Use MCP graph tools (`find_symbol`, `get_module_summary`) for codebase navigation. Fall back to Grep if graph tools are unavailable.
 
 ## Tools
 

@@ -21,6 +21,9 @@ TARGET_DIR="$2"
 PROFILE="$3"
 shift 3
 
+# Compute plugin directory (parent of scripts/)
+PLUGIN_DIR="$(cd "$(dirname "$0")/.." && pwd)"
+
 # Parse KEY=VALUE args into associative array
 declare -A PLACEHOLDERS
 for arg in "$@"; do
@@ -28,6 +31,8 @@ for arg in "$@"; do
   value="${arg#*=}"
   PLACEHOLDERS["$key"]="$value"
 done
+
+PLACEHOLDERS["PLUGIN_DIR"]="$PLUGIN_DIR"
 
 PREFIX="${PLACEHOLDERS[PREFIX]:-}"
 FE_DIR="${PLACEHOLDERS[FE_DIR]:-}"
@@ -128,6 +133,9 @@ copy_and_replace "$SCAFFOLD_DIR/base/settings.json" "$TARGET_DIR/.claude/setting
 
 # Create directories
 mkdir -p "$TARGET_DIR/docs/masterplans/executed" "$TARGET_DIR/docs/reports"
+
+# Add .code-graph/ to .gitignore
+echo ".code-graph/" >> "$TARGET_DIR/.gitignore"
 
 # --- Phase 4b: Scaffold profile files (if angular-dotnet) ---
 if [[ "$PROFILE" == "angular-dotnet" ]]; then

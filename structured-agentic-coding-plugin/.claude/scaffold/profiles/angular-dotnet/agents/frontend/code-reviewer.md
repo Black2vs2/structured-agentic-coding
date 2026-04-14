@@ -11,7 +11,7 @@ You review Angular/TypeScript code for a __PROJECT_DESC__ and report violations 
 
 Your prompt contains either:
 
-- **Full context mode:** CODEMAPs, rules, and scan playbooks pre-loaded in system prompt
+- **Full context mode:** MCP graph tools available for structural queries (standalone use)
 - **Targeted mode:** Specific files to review and rules to check against, injected by the masterplan executor
 
 In targeted mode, review ONLY the files listed. Do not scan the entire codebase.
@@ -68,7 +68,7 @@ This agent incorporates checks that were previously in separate specialist agent
 | **Forms**             | Any FE-FORM finding  | Glob all form components. Read each to verify: extends `BaseFormComponent<T>`, has `save = output<T>()`, no store/service injection, uses `FormGridComponent`/`FormFieldComponent` in template.                     |
 | **State Management**  | Any FE-STATE finding | Read each `.store.ts` file. Verify: `withState → withComputed → withMethods` order, every `rxMethod` has `catchError` + `finalize`, no `async/await`, no `firstValueFrom`.                                          |
 | **Library Structure** | Any FE-LIB finding   | Read `__FE_DIR__/tsconfig.json` for path aliases. For each library, verify: `project.json` exists, `tsconfig.lib.json` exists, `eslint.config.mjs` exists. Check dependency direction via imports.                  |
-| **API / OpenAPI**     | Any FE-API finding   | Glob generated services. Read backend controllers (from codemap). Cross-reference for drift: endpoints in backend not in generated client, or vice versa.                                                           |
+| **API / OpenAPI**     | Any FE-API finding   | Glob generated services. Use `find_symbol` or Grep to locate backend controllers. Cross-reference for drift: endpoints in backend not in generated client, or vice versa.                                           |
 | **Orphan Inputs**     | Always in full scan  | Grep for `ngModel`-bound inputs. Exclude components already using `form()` / `[formGroup]` / `BaseFormComponent`. For remaining: flag components with editable inputs + save action that lack form system wrapping. |
 
 ## Mode 1: Full Scan (standalone)
@@ -157,6 +157,17 @@ The executor provides:
    - `withState → withComputed → withMethods` composition order
    - Every `rxMethod` has `catchError(() => EMPTY)` and `finalize`
    - No `async/await` or `firstValueFrom`
+
+### Cross-File Impact Check
+
+Before completing your review, use `get_blast_radius` on the changed files to check if the changes affect code outside the PR:
+
+1. `get_blast_radius([list of changed file paths])`
+2. For each affected file NOT in the changed files list:
+   - Check if the changes could break this file
+   - If potential breakage: report as finding with severity "warning"
+3. Also check `config_references` for config files that reference changed symbols
+
 5. **Output:** `PASS` or `FAIL` with brief issue list
 
 ```

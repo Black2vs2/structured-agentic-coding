@@ -55,7 +55,7 @@ Agent(
   The user wants to: {user's original request}
 
   Follow the Procedure in the agent definition:
-  1. Orient — read CODEMAPs from your context
+  1. Orient — use graph tools to understand current structure
   2. Clarify — ask the user 5-8 questions (one at a time, prefer multiple choice)
   3. Design — produce the masterplan in the required format
   4. Present — show sections for approval
