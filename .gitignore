@@ -1,2 +1,10 @@
 settings.local.json
 docs/superpowers
+
+# Graph server Python artifacts
+__pycache__/
+*.pyc
+*.egg-info/
+.venv/
+.code-graph/
+*.db

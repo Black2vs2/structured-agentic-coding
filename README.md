@@ -135,6 +135,12 @@ Open Claude Code in your target project and run `/structured-agentic-coding`. On
 
 </details>
 
+## Code Graph
+
+The structural analysis MCP server was inspired by [code-review-graph](https://github.com/tirth8205/code-review-graph) by Tirth Patel. We built a tailored tree-sitter graph layer optimized for agent navigation within the structured-agentic-coding workflow.
+
+See [tree-sitter](https://tree-sitter.github.io/tree-sitter/) for the parsing engine.
+
 ## Roadmap
 
 ### RALF Loop — Non-Technical User Requests
