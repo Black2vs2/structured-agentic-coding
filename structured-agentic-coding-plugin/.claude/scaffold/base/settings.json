@@ -2,8 +2,13 @@
   "hooks": {
     "SessionStart": [
       {
-        "type": "command",
-        "command": "bash __PLUGIN_DIR__/scripts/check-graph.sh"
+        "matcher": "",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "bash __PLUGIN_DIR__/scripts/check-graph.sh"
+          }
+        ]
       }
     ]
   }
