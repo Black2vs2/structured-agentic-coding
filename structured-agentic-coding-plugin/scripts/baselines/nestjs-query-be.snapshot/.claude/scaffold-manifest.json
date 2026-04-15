@@ -1,0 +1,190 @@
+{
+  "version": "4.2.0",
+  "scaffoldedAt": "<NORMALIZED_TIMESTAMP>",
+  "updatedAt": null,
+  "profile": "nestjs-query-be",
+  "scope": "be",
+  "placeholders": {
+    "BE_BUILD": "bun run build",
+    "BE_DIR": ".",
+    "BE_FORMAT": "bun run format",
+    "BE_LINT": "bun run lint:fix",
+    "BE_RUN": "bun run start:dev",
+    "BE_RUNTIME": "bun",
+    "BE_TEST": "bun run test",
+    "BE_TEST_E2E": "bun run test:e2e",
+    "DB_MANAGED": "true",
+    "FIREBASE_EMULATOR": "bun run firebase:emulator:start",
+    "GRAPHQL_SCHEMA_OUT": "src/schema.gql",
+    "MIGRATION_GENERATE": "bun run migration:generate <Name>",
+    "MIGRATION_REVERT": "bun run migration:revert",
+    "MIGRATION_RUN": "bun run migration:run",
+    "PLUGIN_DIR": "<NORMALIZED_PLUGIN_DIR>",
+    "PREFIX": "testnqbe",
+    "PROJECT_DESC": "Test nestjs-query-be project for smoke testing",
+    "PROJECT_NAME": "Test NestJS Query BE",
+    "SCOPE": "be"
+  },
+  "files": {
+    ".claude/agents/codebase/testnqbe-doc-enforcer.md": {
+      "hash": "sha256:b450dc5c53c0854d38a25d39f16652da5a51e77609386621b8d7a6a3311009e7",
+      "category": "agents-core",
+      "source": "base/agents/codebase/doc-enforcer.md"
+    },
+    ".claude/agents/codebase/testnqbe-masterplan-architect.md": {
+      "hash": "sha256:0c61c8c99b14167445d2e0a6838188ce94455ac34d66389b501e4441aae04a30",
+      "category": "agents-core",
+      "source": "base/agents/codebase/masterplan-architect.md"
+    },
+    ".claude/agents/codebase/testnqbe-masterplan-executor.md": {
+      "hash": "sha256:26067171fe7d24c57211c608d7182b522a3af09c1275d6bb982d773d7711ce2e",
+      "category": "agents-core",
+      "source": "base/agents/codebase/masterplan-executor.md"
+    },
+    ".claude/agents/codebase/testnqbe-masterplan-reviewer.md": {
+      "hash": "sha256:d6e5693aa79a0c1c99e2238c643f7d5c79152dc4c52572f33e27599fdd0e1248",
+      "category": "agents-core",
+      "source": "base/agents/codebase/masterplan-reviewer.md"
+    },
+    ".claude/agents/domain/testnqbe-impact-analyst.md": {
+      "hash": "sha256:a1d3f785bbb58ffc5219b6ed52c7f292262d83d92123ec6d4c8a2872e035c167",
+      "category": "agents-core",
+      "source": "base/agents/domain/impact-analyst.md"
+    },
+    ".claude/agents/domain/testnqbe-research.md": {
+      "hash": "sha256:7175be6da36ecaf2e2f2b1683088bf6c8391efecc7c810d16c3d43248c458a8f",
+      "category": "agents-core",
+      "source": "base/agents/domain/research.md"
+    },
+    ".claude/commands/kill.md": {
+      "hash": "sha256:b4fbe2c0395d7bb8b91627fc4f744ded787de5afa9c6dbef7a8d1873f205b5fe",
+      "category": "commands",
+      "source": "base/commands/kill.md"
+    },
+    ".claude/commands/masterplan-review.md": {
+      "hash": "sha256:2c3cd45d9c38e6bae47d83c9ce6ffc03aa013ec57e4cb8385c97c9f44563ede1",
+      "category": "commands",
+      "source": "base/commands/masterplan-review.md"
+    },
+    ".claude/commands/masterplan.md": {
+      "hash": "sha256:b8372e0a29c5cb2b108171a2ac37f05abb113f412d76d661d4d67c0c74920c30",
+      "category": "commands",
+      "source": "base/commands/masterplan.md"
+    },
+    ".claude/commands/rebuild-graph.md": {
+      "hash": "sha256:f031b840e8a200b0b8edddca6ec6d1226f5b20b9d6be9df9e9dca6e61f2d228b",
+      "category": "commands",
+      "source": "base/commands/rebuild-graph.md"
+    },
+    ".claude/templates/ARCHITECTURE.template.md": {
+      "hash": "sha256:4b390f60ceafb4a1e08269e68c29c380dc35bfc5ec44f6fb2e0e9c982ba7dba9",
+      "category": "templates",
+      "source": "base/templates/ARCHITECTURE.template.md"
+    },
+    ".claude/templates/GUIDELINES.template.md": {
+      "hash": "sha256:f4c64443c9a9c74651b5c33b1d6df2f8f4bedc374f2d0742730f6dbc9943be10",
+      "category": "templates",
+      "source": "base/templates/GUIDELINES.template.md"
+    },
+    "CLAUDE.md": {
+      "hash": "sha256:4cf8159e41b7556ccaf2939193af54776ae2521e5e9f649d29ca7519cb2b6287",
+      "category": "templates",
+      "source": "base/claude"
+    },
+    ".claude/AGENTS.md": {
+      "hash": "sha256:7327d00b299f29b4e3c80b8a2283d9e6a855eaa7a85b020f375dcf5c682f67bd",
+      "category": "templates",
+      "source": "base/agents-md"
+    },
+    ".claude/settings.json": {
+      "hash": "sha256:540e419f443839ee85a45b575ec917a02e5e12296b14eede05435d38ac026115",
+      "category": "config",
+      "source": "base/settings"
+    },
+    ".claude/anti-patterns.md": {
+      "hash": "sha256:dd97b7addef176817437c56a879b686c937d371707378da9d9b9269853ab4e55",
+      "category": "config",
+      "source": "base/anti-patterns.md"
+    },
+    "./.claude/agents/testnqbe-code-reviewer.md": {
+      "hash": "sha256:ee2379903c5011cd9f8a399a749fb02cca5a01c6d0b9aeec71685d5dfe27c7c6",
+      "category": "agents-profile",
+      "source": "profiles/nestjs-query-be/agents/backend/code-reviewer.md"
+    },
+    "./.claude/agents/testnqbe-feature-developer.md": {
+      "hash": "sha256:e571cadd96310a0b13891bd6e61511a02699ed65f9a546810174f62815f451f2",
+      "category": "agents-profile",
+      "source": "profiles/nestjs-query-be/agents/backend/feature-developer.md"
+    },
+    "./.claude/agents/testnqbe-fixer.md": {
+      "hash": "sha256:c2b554b74894608870f2145ea81b0fdc30855910abab2296a465fba2451eed16",
+      "category": "agents-profile",
+      "source": "profiles/nestjs-query-be/agents/backend/fixer.md"
+    },
+    ".claude/agents/domain/testnqbe-migration-reviewer.md": {
+      "hash": "sha256:1f8dec3867100fedcec61b0d2bf0ebcf412d793a4a89a6238ae9300041fd4c0b",
+      "category": "agents-profile",
+      "source": "profiles/nestjs-query-be/agents/domain/migration-reviewer.md"
+    },
+    ".claude/agents/domain/testnqbe-test-writer.md": {
+      "hash": "sha256:e3daaf300743cd7ead1682e858ad0ce196026586d98815a99f22ca0a32959918",
+      "category": "agents-profile",
+      "source": "profiles/nestjs-query-be/agents/domain/test-writer.md"
+    },
+    "./.claude/agents/be-scans/api.md": {
+      "hash": "sha256:2e6f952aee483d28ab576034a15a9afa4d4580a54168d800ee32efc67e50c549",
+      "category": "rules-scans",
+      "source": "profiles/nestjs-query-be/scans/be-scans/api.md"
+    },
+    "./.claude/agents/be-scans/architecture.md": {
+      "hash": "sha256:a275cb03f27dee080d90a5deb20bc09239be5124821208a01e043bb1d9006cdf",
+      "category": "rules-scans",
+      "source": "profiles/nestjs-query-be/scans/be-scans/architecture.md"
+    },
+    "./.claude/agents/be-scans/auth.md": {
+      "hash": "sha256:462ee5baa30c7e9624655832f6f40df8037f2c27240ee38ab1e75a820c3a2c8f",
+      "category": "rules-scans",
+      "source": "profiles/nestjs-query-be/scans/be-scans/auth.md"
+    },
+    "./.claude/agents/be-scans/ci-secrets.md": {
+      "hash": "sha256:1fd3123b4d1c3e5396f2330aea77e269de18cf1ffe9e9717e7188807c824ca93",
+      "category": "rules-scans",
+      "source": "profiles/nestjs-query-be/scans/be-scans/ci-secrets.md"
+    },
+    "./.claude/agents/be-scans/nestjs-query.md": {
+      "hash": "sha256:bb611787573e49220d5f195152c541dd48e3262a185e3370d58196c6842b25fb",
+      "category": "rules-scans",
+      "source": "profiles/nestjs-query-be/scans/be-scans/nestjs-query.md"
+    },
+    "./.claude/agents/be-scans/queue.md": {
+      "hash": "sha256:feafd3882dff05d6d3d6aff6e611ff8366f63d5d269b014808e073a6e06e5283",
+      "category": "rules-scans",
+      "source": "profiles/nestjs-query-be/scans/be-scans/queue.md"
+    },
+    "./.claude/agents/be-scans/security.md": {
+      "hash": "sha256:a81df2d35124ccfda0f2b25f015c9aef9af8c2c45e71f8c70d923567945eca76",
+      "category": "rules-scans",
+      "source": "profiles/nestjs-query-be/scans/be-scans/security.md"
+    },
+    "./.claude/agents/be-scans/testing.md": {
+      "hash": "sha256:f5a5dcf561dd19127d45ba68ccc7fbbb9fdc70ba2f71f0c86883bb3cca3f8527",
+      "category": "rules-scans",
+      "source": "profiles/nestjs-query-be/scans/be-scans/testing.md"
+    },
+    "./.claude/agents/be-scans/typeorm.md": {
+      "hash": "sha256:99f6c3930134bb8a4c9145b76c72af9a217d487a002ad291ba3243076596cad2",
+      "category": "rules-scans",
+      "source": "profiles/nestjs-query-be/scans/be-scans/typeorm.md"
+    },
+    "./.claude/agents/be-scans/validation.md": {
+      "hash": "sha256:c7215957bb14d29a7313e975becdfb5a4e46beaf3685f2155b6baeca8936f88e",
+      "category": "rules-scans",
+      "source": "profiles/nestjs-query-be/scans/be-scans/validation.md"
+    },
+    ".claude/rules/be-rules.json": {
+      "hash": "sha256:dde111597009c3a3a7e9d316271202262007364c22f8e1b050548819cc593930",
+      "category": "rules-scans",
+      "source": "profiles/nestjs-query-be/rules/be-rules.json"
+    }
+  }
+}

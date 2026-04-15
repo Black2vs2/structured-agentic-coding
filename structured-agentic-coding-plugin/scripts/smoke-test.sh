@@ -173,5 +173,25 @@ run_scenario "angular-dotnet-fullstack" "angular-dotnet" \
   BE_NAMESPACE="App" \
   E2E_CMD="cd frontend && npx playwright test"
 
+run_scenario "nestjs-query-be" "nestjs-query-be" \
+  PREFIX=testnqbe \
+  PROJECT_NAME="Test NestJS Query BE" \
+  PROJECT_DESC="Test nestjs-query-be project for smoke testing" \
+  SCOPE=be \
+  BE_DIR=. \
+  BE_RUNTIME=bun \
+  BE_BUILD="bun run build" \
+  BE_RUN="bun run start:dev" \
+  BE_TEST="bun run test" \
+  BE_TEST_E2E="bun run test:e2e" \
+  BE_FORMAT="bun run format" \
+  BE_LINT="bun run lint:fix" \
+  MIGRATION_RUN="bun run migration:run" \
+  MIGRATION_GENERATE="bun run migration:generate <Name>" \
+  MIGRATION_REVERT="bun run migration:revert" \
+  DB_MANAGED=true \
+  FIREBASE_EMULATOR="bun run firebase:emulator:start" \
+  GRAPHQL_SCHEMA_OUT="src/schema.gql"
+
 echo ""
 echo "=== All scenarios complete ==="

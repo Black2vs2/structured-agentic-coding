@@ -72,8 +72,8 @@ Commands:
 - Build: `dotnet build backend/App.sln`
 - Test: `dotnet test backend/App.sln`
 - Format: `dotnet csharpier backend/`
-- Database: `docker compose -f docker/docker-compose.yml up -d`
-- Migrations: `dotnet ef migrations add Mig --project backend/src/App.Migrations --startup-project backend/src/App.Api`
+
+Stack-specific commands (database, migrations, emulator) are documented in the profile overlay below.
 
 ## Frontend
 
@@ -90,3 +90,14 @@ Commands:
 - Format: `cd frontend && npx prettier --write .`
 - Lint: `cd frontend && npx nx lint`
 - E2E tests: `cd frontend && npx playwright test`
+<!--
+Profile CLAUDE.md overlay for angular-dotnet. Appended to CLAUDE.md after
+the base fragments so profile-specific commands (database, migrations,
+openapi-sync) don't bleed into the general _be-section template.
+-->
+
+### .NET / EF Core specifics
+
+- Database (local Postgres): `docker compose -f docker/docker-compose.yml up -d`
+- EF Core migration: `dotnet ef migrations add Mig --project backend/src/App.Migrations --startup-project backend/src/App.Api`
+- OpenAPI → frontend client sync: `/openapi-sync` (available only when scaffolded fullstack)

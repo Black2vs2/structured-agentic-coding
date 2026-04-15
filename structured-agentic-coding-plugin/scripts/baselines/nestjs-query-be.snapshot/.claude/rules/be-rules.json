@@ -1,0 +1,111 @@
+{
+  "agent": "be-expert-nestjs-query",
+  "version": 1,
+  "categories": [
+    {
+      "name": "Architecture & Structure",
+      "prefix": "BE-ARCH",
+      "rules": [
+        { "id": "BE-ARCH-001", "name": "Feature module anatomy", "category": "architecture", "layer": "module", "check": "Each feature directory must contain: entity/, dto/, service/, resolver/, <feature>.module.ts. assembler/ and validators/ are optional but required when the DTO shape differs from the entity or when FK existence validation is used.", "why": "Consistent layout makes features discoverable and enforces the layering that nestjs-query assumes." },
+        { "id": "BE-ARCH-002", "name": "Module exports service + TypeOrmModule", "category": "architecture", "layer": "module", "check": "Every feature module must export its service AND re-export TypeOrmModule.forFeature([...entities]) so other modules can inject the repository and the service.", "why": "Cross-module composition needs both the service (for logic) and the repository token (for tests / direct queries in consumers)." },
+        { "id": "BE-ARCH-003", "name": "No circular module dependencies", "category": "architecture", "layer": "module", "check": "Flag any two modules that import each other. Break cycles via a shared module or events.", "why": "Circular module imports produce obscure DI failures at startup." },
+        { "id": "BE-ARCH-004", "name": "All modules declared in AppModule", "category": "architecture", "layer": "module", "check": "Every feature module under src/<feature>/<feature>.module.ts must be imported by AppModule's imports array (directly or via a barrel module).", "why": "Modules not imported are silently absent at runtime — resolvers won't be registered." }
+      ]
+    },
+    {
+      "name": "TypeORM & Migrations",
+      "prefix": "BE-TYPEORM",
+      "rules": [
+        { "id": "BE-TYPEORM-001", "name": "No synchronize: true", "category": "typeorm", "layer": "entity,config", "check": "Flag synchronize: true in any DataSource, TypeOrmModule.forRoot(), or data-source.ts config — in any environment.", "why": "Auto-sync bypasses migrations, silently destroys data, and creates environment drift.", "fix": "synchronize: false; apply schema changes via migrations only." },
+        { "id": "BE-TYPEORM-002", "name": "Descriptive migration names", "category": "typeorm", "layer": "migration", "check": "Flag migration class names matching generic patterns: /^Migration\\d+$/, /^Update\\d*$/, /^Fix\\d*$/, /^Change\\d*$/. Names should describe the change (AddPartnerIdToOrders, RenameStatusToState).", "why": "Readable history, correct rollbacks, searchable git log." },
+        { "id": "BE-TYPEORM-003", "name": "down() reverses up()", "category": "typeorm", "layer": "migration", "check": "Flag migrations with empty down() bodies, down() that only throws, or down() missing a reverse for operations in up().", "why": "Missing reverse breaks rollback and makes staging-to-prod promotions risky." },
+        { "id": "BE-TYPEORM-004", "name": "No explicit Id assignment", "category": "typeorm", "layer": "service,entity", "check": "Flag explicit id assignment before save(): entity.id = uuid(), new Entity({ id: '...' }), createdEntity.id = Guid... etc. Entities use @PrimaryGeneratedColumn('uuid') — let TypeORM generate.", "why": "Bypasses DB-side UUID generation, introduces bugs where pre-commit mutations look like upserts.", "fix": "Remove manual id; read the generated id from the save() return value." },
+        { "id": "BE-TYPEORM-005", "name": "FK with explicit onDelete", "category": "typeorm", "layer": "entity,migration", "check": "Every @ManyToOne / @OneToMany / @JoinColumn with FK must specify onDelete explicitly (CASCADE | RESTRICT | SET NULL | NO ACTION). Flag entities or migrations that omit it.", "why": "Default onDelete varies by DB and is a silent footgun on production." },
+        { "id": "BE-TYPEORM-006", "name": "No raw SQL for mutations", "category": "typeorm", "layer": "service", "check": "Flag dataSource.query() or repo.query() with INSERT/UPDATE/DELETE statements. Allowed only for read-only analytical queries with a justification comment.", "why": "Bypasses tracking, soft-delete triggers, audit interceptors, and TypeORM's type safety.", "fix": "Use repository methods (save, update, softDelete, remove)." }
+      ]
+    },
+    {
+      "name": "nestjs-query",
+      "prefix": "BE-QUERY",
+      "rules": [
+        { "id": "BE-QUERY-001", "name": "@FilterableField on DTO fields", "category": "nestjs-query", "layer": "dto", "check": "Every field in a DTO decorated with @ObjectType() that is intended to be queryable must use @FilterableField() instead of @Field(). Exception: @AdminOnlyField() fields.", "why": "nestjs-query generates filters only from @FilterableField — missing fields become silently un-filterable." },
+        { "id": "BE-QUERY-002", "name": "GraphQL schema not hand-edited", "category": "nestjs-query", "layer": "schema", "check": "Flag any git diff touching src/schema.gql that did not come from a resolver / DTO regen. The file is auto-generated.", "why": "Manual edits desync from code and are overwritten on next boot." },
+        { "id": "BE-QUERY-003", "name": "Service extends TypeOrmQueryService", "category": "nestjs-query", "layer": "service", "check": "Feature services intended for nestjs-query CRUD must extend TypeOrmQueryService<Entity> with @QueryService(Entity) decorator.", "why": "CRUDResolver relies on this contract to emit filterable queries/mutations." },
+        { "id": "BE-QUERY-004", "name": "PagingStrategies.OFFSET only", "category": "nestjs-query", "layer": "resolver,module", "check": "Flag any use of PagingStrategies.CURSOR or explicit CursorPaging config. Project standard is OFFSET paging.", "why": "Mixing paging strategies across modules breaks consistent pagination UX and client caching." },
+        { "id": "BE-QUERY-005", "name": "Assembler required when DTO shape differs", "category": "nestjs-query", "layer": "assembler", "check": "If a DTO has fields not on the entity or drops fields from the entity, the feature module must register an assembler (e.g., ClassTransformerAssembler). Flag resolvers whose DTO diverges from entity without an assembler.", "why": "Without an assembler, nestjs-query serializes the entity directly — missing/extra fields leak or are null." }
+      ]
+    },
+    {
+      "name": "Auth & Guards",
+      "prefix": "BE-AUTH",
+      "rules": [
+        { "id": "BE-AUTH-001", "name": "No manual @UseGuards() on resolvers", "category": "auth", "layer": "resolver", "check": "Flag @UseGuards(...) on @Resolver classes or @Query/@Mutation methods. The global guard chain (UserAuthGuard → RolesGuard → PartnerAssignedGuard) is registered as APP_GUARD.", "why": "Local redeclaration duplicates work and obscures intent; use @RequiredRoles()/@PartnerNotRequired() decorators instead.", "fix": "Remove the @UseGuards and rely on the global chain." },
+        { "id": "BE-AUTH-002", "name": "Firebase token verify not bypassed", "category": "auth", "layer": "guard,service,resolver", "check": "Flag direct reads of Authorization header (context.req.headers.authorization), ad-hoc JWT decoding, or setting context.req.user outside UserAuthGuard.", "why": "UserAuthGuard verifies the Firebase ID token via the Admin SDK — bypassing it is an auth-bypass vulnerability." },
+        { "id": "BE-AUTH-003", "name": "@PartnerNotRequired needs justification", "category": "auth", "layer": "resolver", "check": "Flag @PartnerNotRequired() without a comment explaining why the partner scope is intentionally skipped.", "why": "Partner scoping is the primary multi-tenant isolation — exceptions must be documented." },
+        { "id": "BE-AUTH-004", "name": "@AdminOnlyField fields not logged", "category": "auth", "layer": "service,resolver,interceptor", "check": "Flag log statements (logger.info/debug/warn/error) whose payload includes an object containing a @AdminOnlyField. These may leak admin-only data to log sinks.", "why": "AdminFieldFilterInterceptor filters the response but logs bypass it." },
+        { "id": "BE-AUTH-005", "name": "Role check precedes business logic", "category": "auth", "layer": "resolver,service", "check": "Flag service methods that perform side effects BEFORE reading request.user role. Role-gated mutations should short-circuit before DB writes.", "why": "Fail-fast on authorization prevents partial state on denied requests." }
+      ]
+    },
+    {
+      "name": "Validation & Errors",
+      "prefix": "BE-VAL",
+      "rules": [
+        { "id": "BE-VAL-001", "name": "@Trim on string inputs", "category": "validation", "layer": "dto", "check": "Every string field on a @InputType() DTO must have @Trim() applied (prevents whitespace-only and trailing-space inputs).", "why": "Raw strings arrive with user whitespace — trimming at the boundary avoids database and search inconsistencies." },
+        { "id": "BE-VAL-002", "name": "@MinLength on required strings", "category": "validation", "layer": "dto", "check": "Required string inputs (non-nullable) should have @MinLength(1) to reject empty strings after @Trim.", "why": "Empty strings after trim are equivalent to null but pass @IsString()." },
+        { "id": "BE-VAL-003", "name": "FK validators extend ForeignKeyExistsConstraint", "category": "validation", "layer": "validators", "check": "Custom validators checking FK existence (e.g., @PartnerExists()) must extend ForeignKeyExistsConstraint rather than implement from scratch.", "why": "Shared base enforces consistent error messages and DB lookup pattern." },
+        { "id": "BE-VAL-004", "name": "Custom exceptions extend ApiException", "category": "validation", "layer": "service,filter", "check": "Flag throw new Error(...) / throw new InternalServerErrorException(...) for business errors. All custom exceptions must extend ApiException.", "why": "ApiException produces RFC 9457 ProblemDetails with stable error codes; raw errors become generic 500s.", "fix": "Extend ApiException and raise a typed error." },
+        { "id": "BE-VAL-005", "name": "No @IsUUID combined with FK validator", "category": "validation", "layer": "dto", "check": "Flag fields decorated with both @IsUUID() and a FK-existence validator (e.g., @PartnerExists()). The FK validator already validates UUID format.", "why": "Redundant; produces two error messages for the same input." }
+      ]
+    },
+    {
+      "name": "Queue (pg-boss)",
+      "prefix": "BE-QUEUE",
+      "rules": [
+        { "id": "BE-QUEUE-001", "name": "Job handlers idempotent", "category": "queue", "layer": "service", "check": "Flag pg-boss .work() handlers that perform non-idempotent writes (e.g., INSERT without ON CONFLICT, increment counters) without a deduplication key check at the top.", "why": "pg-boss retries on failure; non-idempotent handlers double-write on retry." },
+        { "id": "BE-QUEUE-002", "name": "Use pg-boss not BullMQ", "category": "queue", "layer": "module,package", "check": "Flag imports of @nestjs/bull or @nestjs/bullmq. Project uses pg-boss via QueueService.", "why": "Mixing queue systems doubles infra surface (Redis) and reasoning; adopt BullMQ only with an ADR." },
+        { "id": "BE-QUEUE-003", "name": "Job failures logged at WARN+", "category": "queue", "layer": "service", "check": "Flag .work() handlers whose catch blocks log at debug/info. Queue failures must be Warning or Error to surface in production monitoring.", "why": "Low-severity logs get filtered; silent job failures look like success from outside." }
+      ]
+    },
+    {
+      "name": "API & Swagger",
+      "prefix": "BE-API",
+      "rules": [
+        { "id": "BE-API-001", "name": "Swagger env-gated", "category": "api", "layer": "main", "check": "In src/main.ts, Swagger setup must be conditional on NODE_ENV !== 'production' OR ENABLE_SWAGGER === 'true'. Flag unconditional SwaggerModule.setup().", "why": "Swagger in prod exposes API shape to anyone; should be opt-in for ops." },
+        { "id": "BE-API-002", "name": "REST controllers thin", "category": "api", "layer": "controller", "check": "Flag REST controllers (@Controller()) with database calls, class-validator logic, or business computation. Controllers should only delegate to services.", "why": "GraphQL is primary; REST endpoints should be minimal (health, OAuth callback, etc.)." },
+        { "id": "BE-API-003", "name": "Health check convention", "category": "api", "layer": "controller", "check": "Root health endpoint must be GET /api/ping returning 200 with a minimal JSON body ({ ok: true, version: '...' }).", "why": "Cloud Run / k8s probes rely on a predictable endpoint." },
+        { "id": "BE-API-004", "name": "No business logic in controllers", "category": "api", "layer": "controller", "check": "Flag REST controllers importing repository tokens or entity classes directly. Data access belongs in services.", "why": "Controllers are the HTTP boundary; mixing persistence makes them untestable." }
+      ]
+    },
+    {
+      "name": "Security",
+      "prefix": "BE-SEC",
+      "rules": [
+        { "id": "BE-SEC-001", "name": "Helmet configured", "category": "security", "layer": "main", "check": "app.use(helmet(...)) must be present in src/main.ts before any route registration. Flag absence.", "why": "Standard HTTP security headers (CSP, HSTS, X-Frame-Options) prevent trivial web vulns." },
+        { "id": "BE-SEC-002", "name": "Throttler global", "category": "security", "layer": "module", "check": "ThrottlerModule must be imported in AppModule with a global rate limit (e.g., 10 req/60s). Per-endpoint overrides need a justification comment.", "why": "Global floor prevents accidental DoS; overrides should be deliberate." },
+        { "id": "BE-SEC-003", "name": "Turnstile on public mutations", "category": "security", "layer": "resolver,guard", "check": "Public (unauthenticated) mutations — e.g., waitlist signup, contact form — must be protected by TurnstileGuard. Flag any public mutation without it.", "why": "Bot protection for unauthenticated write endpoints." },
+        { "id": "BE-SEC-004", "name": "No hardcoded secrets", "category": "security", "layer": "all", "check": "Flag string literals matching common secret patterns (API_KEY=, Bearer <hex>, postgres://user:pass@, etc.) anywhere in src/.", "why": "Secrets belong in env vars injected by GCP Secret Manager at runtime." },
+        { "id": "BE-SEC-005", "name": "CSP allows introspection only in dev", "category": "security", "layer": "main", "check": "Helmet CSP config allowing Apollo GraphQL introspection (unsafe-inline script-src, etc.) must be gated to NODE_ENV !== 'production'.", "why": "Introspection is a dev convenience; production CSP should be strict." }
+      ]
+    },
+    {
+      "name": "CI & Deploy",
+      "prefix": "BE-CI",
+      "rules": [
+        { "id": "BE-CI-001", "name": "Bun-only package manager", "category": "ci", "layer": "ci,package", "check": "Repo must contain bun.lock (or bun.lockb). Flag presence of package-lock.json, yarn.lock, or pnpm-lock.yaml. CI workflows must use bun commands.", "why": "Mixed package managers produce divergent lockfiles and install behaviors." },
+        { "id": "BE-CI-002", "name": "Secrets parity cloudbuild.yaml vs deploy-*.yml", "category": "ci", "layer": "ci", "check": "The list of secrets passed to Cloud Run via --set-secrets must be identical between cloudbuild.yaml and .github/workflows/deploy-{stage,prod}.yml. Diff any mismatch.", "why": "Drift causes the app to crash on startup when a secret is missing in one path but not the other." },
+        { "id": "BE-CI-003", "name": "Multi-stage Dockerfile", "category": "ci", "layer": "docker", "check": "Dockerfile must use multi-stage (FROM ... AS builder + FROM ... AS runtime). Final stage should NOT include bun install cache, test sources, or .env files.", "why": "Single-stage images bloat and ship build artifacts to production." },
+        { "id": "BE-CI-004", "name": "Migrations run before container starts", "category": "ci", "layer": "ci", "check": "Deploy workflow must run bun run migration:run (in a CI step or container entrypoint) BEFORE the new Cloud Run revision receives traffic.", "why": "Code deployed with unmet schema expectations breaks instantly on cold start." }
+      ]
+    },
+    {
+      "name": "Testing",
+      "prefix": "BE-TEST",
+      "rules": [
+        { "id": "BE-TEST-001", "name": "*.spec.ts naming", "category": "testing", "layer": "test", "check": "Unit test files must co-locate with source and use the .spec.ts suffix. Flag tests under test/ that should be e2e.", "why": "Jest config discovers *.spec.ts via the rootDir scan — misnamed files don't run." },
+        { "id": "BE-TEST-002", "name": "Mock Repository via getRepositoryToken", "category": "testing", "layer": "test", "check": "Service tests must inject a mocked Repository via { provide: getRepositoryToken(Entity), useValue: {...} }. Flag any direct import of a real Repository or DataSource.", "why": "Tests hitting real DB are e2e, not unit; they slow CI and couple to test-DB setup." },
+        { "id": "BE-TEST-003", "name": "AAA structure", "category": "testing", "layer": "test", "check": "Test blocks should be organized Arrange / Act / Assert (can be comments or blank-line separators). Flag it() bodies with interleaved mocking and assertion.", "why": "AAA makes intent legible and drives one-behavior-per-test." },
+        { "id": "BE-TEST-004", "name": "Coverage floor on changed lines", "category": "testing", "layer": "test", "check": "Changed lines should have >= 60% test coverage. This rule is severity `info` until the project-wide Jest harness is installed; raise to warning after.", "why": "Coverage trend protects against untested regressions." }
+      ]
+    }
+  ]
+}

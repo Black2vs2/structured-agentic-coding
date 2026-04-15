@@ -1,0 +1,187 @@
+{
+  "profile": "nestjs-query-be",
+  "scope": "be",
+  "context_hints": [
+    {
+      "file": "CLAUDE.md",
+      "grep": "(?i)bun (required|only|mandatory|runtime)",
+      "implies": { "BE_RUNTIME": "bun" }
+    },
+    {
+      "file": "README.md",
+      "grep": "(?i)bun\\.lock|bun runtime|powered by bun",
+      "implies": { "BE_RUNTIME": "bun" }
+    },
+    {
+      "file": "CLAUDE.md",
+      "grep": "(?i)firebase\\s+admin|firebase auth",
+      "implies": { "FIREBASE_SCOPE": "admin-sdk" }
+    },
+    {
+      "file": "README.md",
+      "grep": "(?i)firestore",
+      "implies": { "FIREBASE_SCOPE": "firestore" }
+    },
+    {
+      "file": "CLAUDE.md",
+      "grep": "(?i)pg-boss",
+      "implies": { "QUEUE_LIB": "pg-boss" }
+    },
+    {
+      "file": "CLAUDE.md",
+      "grep": "(?i)nestjs-query",
+      "implies": { "CRUD_LIB": "nestjs-query" }
+    },
+    {
+      "file": "docker-compose.yml",
+      "grep": ".",
+      "implies": { "DB_MANAGED": "false" }
+    }
+  ],
+  "variables": [
+    {
+      "key": "BE_RUNTIME",
+      "label": "Backend runtime (bun|node)",
+      "scope": "be",
+      "required": true,
+      "detect": [
+        { "type": "context-inferred", "from": "BE_RUNTIME" },
+        { "type": "glob-present", "pattern": "bun.lock", "value_when_true": "bun" },
+        { "type": "glob-present", "pattern": "bun.lockb", "value_when_true": "bun" },
+        { "type": "static", "value": "node" }
+      ]
+    },
+    {
+      "key": "BE_BUILD",
+      "label": "Backend build command",
+      "scope": "be",
+      "required": true,
+      "detect": [
+        { "type": "package-json-script", "script": "build", "runtime_prefix": true },
+        { "type": "static", "value": "bun run build" }
+      ]
+    },
+    {
+      "key": "BE_RUN",
+      "label": "Backend dev run command",
+      "scope": "be",
+      "required": true,
+      "detect": [
+        { "type": "package-json-script", "script": "start:dev", "runtime_prefix": true },
+        { "type": "package-json-script", "script": "dev", "runtime_prefix": true },
+        { "type": "static", "value": "bun run start:dev" }
+      ]
+    },
+    {
+      "key": "BE_TEST",
+      "label": "Backend unit test command",
+      "scope": "be",
+      "required": true,
+      "detect": [
+        { "type": "package-json-script", "script": "test", "runtime_prefix": true },
+        { "type": "static", "value": "bun run test" }
+      ]
+    },
+    {
+      "key": "BE_TEST_E2E",
+      "label": "Backend e2e test command",
+      "scope": "be",
+      "required": false,
+      "detect": [
+        { "type": "package-json-script", "script": "test:e2e", "runtime_prefix": true },
+        { "type": "static", "value": "bun run test:e2e" }
+      ]
+    },
+    {
+      "key": "BE_FORMAT",
+      "label": "Backend format command",
+      "scope": "be",
+      "required": true,
+      "detect": [
+        { "type": "package-json-script", "script": "format", "runtime_prefix": true },
+        { "type": "static", "value": "bun run format" }
+      ]
+    },
+    {
+      "key": "BE_LINT",
+      "label": "Backend lint (autofix) command",
+      "scope": "be",
+      "required": true,
+      "detect": [
+        { "type": "package-json-script", "script": "lint:fix", "runtime_prefix": true },
+        { "type": "package-json-script", "script": "lint", "runtime_prefix": true },
+        { "type": "static", "value": "bun run lint:fix" }
+      ]
+    },
+    {
+      "key": "MIGRATION_RUN",
+      "label": "Run pending migrations",
+      "scope": "be",
+      "required": true,
+      "detect": [
+        { "type": "package-json-script", "script": "migration:run", "runtime_prefix": true },
+        { "type": "static", "value": "bun run migration:run" }
+      ]
+    },
+    {
+      "key": "MIGRATION_GENERATE",
+      "label": "Generate a new migration from entity changes",
+      "scope": "be",
+      "required": true,
+      "detect": [
+        { "type": "package-json-script", "script": "migration:generate", "runtime_prefix": true },
+        { "type": "static", "value": "bun run migration:generate <Name>" }
+      ]
+    },
+    {
+      "key": "MIGRATION_REVERT",
+      "label": "Revert the most recent migration",
+      "scope": "be",
+      "required": false,
+      "detect": [
+        { "type": "package-json-script", "script": "migration:revert", "runtime_prefix": true },
+        { "type": "static", "value": "bun run migration:revert" }
+      ]
+    },
+    {
+      "key": "DB_MANAGED",
+      "label": "Database is managed externally (no local compose)",
+      "scope": "be",
+      "type": "boolean",
+      "detect": [
+        { "type": "context-inferred", "from": "DB_MANAGED" },
+        { "type": "glob-absent", "pattern": "**/docker-compose*.yml", "value_when_absent": "true", "value_when_present": "false" }
+      ]
+    },
+    {
+      "key": "DB_START",
+      "label": "Local database start command",
+      "scope": "be",
+      "required_if": { "DB_MANAGED": "false" },
+      "detect": [
+        { "type": "docker-compose-service", "service_hint": "postgres|mysql|mariadb" }
+      ]
+    },
+    {
+      "key": "FIREBASE_EMULATOR",
+      "label": "Firebase emulator start command",
+      "scope": "be",
+      "required": false,
+      "detect": [
+        { "type": "package-json-script", "script": "firebase:emulator:start", "runtime_prefix": true },
+        { "type": "static", "value": "bun run firebase:emulator:start" }
+      ]
+    },
+    {
+      "key": "GRAPHQL_SCHEMA_OUT",
+      "label": "Path where the GraphQL schema is auto-generated",
+      "scope": "be",
+      "required": true,
+      "default": "src/schema.gql",
+      "detect": [
+        { "type": "regex-capture-from-files", "glob": "src/**/*.ts", "pattern": "autoSchemaFile:\\s*['\"]([^'\"]+)['\"]" },
+        { "type": "static", "value": "src/schema.gql" }
+      ]
+    }
+  ]
+}

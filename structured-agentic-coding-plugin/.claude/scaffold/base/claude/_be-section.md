@@ -12,5 +12,5 @@ Commands:
 - Build: `__BE_BUILD__`
 - Test: `__BE_TEST__`
 - Format: `__BE_FORMAT__`
-- Database: `__DB_START__`
-- Migrations: `__MIGRATION__`
+
+Stack-specific commands (database, migrations, emulator) are documented in the profile overlay below.

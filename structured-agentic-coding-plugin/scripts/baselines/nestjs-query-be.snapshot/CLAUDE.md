@@ -1,4 +1,4 @@
-# Test Base
+# Test NestJS Query BE
 
 ## Code Graph
 
@@ -38,7 +38,7 @@ Agent directories:
 Before dispatching work, orchestrator agents MUST:
 
 1. Read `.claude/AGENTS.md` to get the current agent manifest
-2. Scan the target directory's `.claude/agents/` for agent files: `Glob("{target}/.claude/agents/testbase-*.md")`
+2. Scan the target directory's `.claude/agents/` for agent files: `Glob("{target}/.claude/agents/testnqbe-*.md")`
 3. Read the first 3 lines of each agent file to understand its role
 4. Choose the right agent based on the task requirements
 
@@ -64,29 +64,43 @@ Masterplans: `docs/masterplans/` | Executed: `docs/masterplans/executed/`
 Rules: `.claude/rules/be-rules.json` — enforced by backend code review agents.
 
 Agent directories:
-- `backend/.claude/agents/` — Backend agents (dev, reviewer, fixer)
-- `backend/.claude/agents/be-scans/` — Backend scan playbooks
+- `./.claude/agents/` — Backend agents (dev, reviewer, fixer)
+- `./.claude/agents/be-scans/` — Backend scan playbooks
 
 Commands:
-- Dev: `echo run`
-- Build: `echo build`
-- Test: `echo test`
-- Format: `echo format`
+- Dev: `bun run start:dev`
+- Build: `bun run build`
+- Test: `bun run test`
+- Format: `bun run format`
 
 Stack-specific commands (database, migrations, emulator) are documented in the profile overlay below.
+<!--
+Profile CLAUDE.md overlay for nestjs-query-be.
 
-## Frontend
+In Phase 6 the skill appends this file's visible content after the base
+`_be-section.md` during BE-scope or fullstack scaffolding. Everything
+between the HTML comments is commentary and will be stripped; the
+visible markdown below ships in the user's CLAUDE.md.
+-->
 
-Rules: `.claude/rules/fe-rules.json` — enforced by frontend code review agents.
+### NestJS-query specifics
 
-Agent directories:
-- `frontend/.claude/agents/` — Frontend agents (dev, reviewer, fixer)
-- `frontend/.claude/agents/fe-scans/` — Frontend scan playbooks
+- `src/schema.gql` is auto-generated from resolvers via `@nestjs/graphql` code-first. **Never hand-edit** — restart the dev server (`bun run start:dev`) to regenerate.
+- Feature module anatomy: `src/<feature>/{dto/, entity/, service/, resolver/, assembler/, validators/, <feature>.module.ts}`. All modules export their service and `TypeOrmModule` for cross-module reuse.
+- All DTO fields use `@FilterableField`; services extend `TypeOrmQueryService`; resolvers extend `CRUDResolver`; paging strategy is OFFSET only (not CURSOR).
 
-Commands:
-- Dev: `npm run dev`
-- Build: `npm run build`
-- Test: `npm run test`
-- Format: `npm run format`
-- Lint: `npm run lint`
-- E2E tests: `echo e2e`
+### Auth chain
+
+Global guards (registered as `APP_GUARD`): `UserAuthGuard` → `RolesGuard` → `PartnerAssignedGuard`. Do NOT add `@UseGuards(...)` on GraphQL resolvers — the global chain already covers them. Use `@PartnerNotRequired()` only with a justification comment. `@AdminOnlyField()` fields are filtered for non-admins by `AdminFieldFilterInterceptor`.
+
+### Migrations (TypeORM)
+
+- Run pending: `bun run migration:run`
+- Generate new: `bun run migration:generate <Name>`
+- Revert last: `bun run migration:revert`
+- Never hand-edit migrations already committed under `database/migrations/`. Fix-forward by creating a new migration.
+
+### Queue & Firebase
+
+- Job queue: pg-boss (not BullMQ). Handlers must be idempotent.
+- Firebase emulator (local auth testing): `bun run firebase:emulator:start`

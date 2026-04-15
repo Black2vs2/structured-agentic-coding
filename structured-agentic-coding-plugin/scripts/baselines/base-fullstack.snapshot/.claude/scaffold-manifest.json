@@ -87,7 +87,7 @@
       "source": "base/templates/GUIDELINES.template.md"
     },
     "CLAUDE.md": {
-      "hash": "sha256:7a333eae32172000b6642607a8b8d07081d8ff06cac824f009ee144073eb2343",
+      "hash": "sha256:76c614515a205e1ab23bc35e2a52e787284c39612411b66357113482b163242b",
       "category": "templates",
       "source": "base/claude"
     },
