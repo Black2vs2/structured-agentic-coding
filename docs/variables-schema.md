@@ -136,6 +136,64 @@ Build a `docker compose ... up -d` command pointing at the first compose file co
 
 Produces a value like `docker compose -f docker/docker-compose.yml up -d`. The `service_hint` is a regex that matches against service names in the compose file.
 
+### `glob-first-path`
+
+Return the path of the first file matching a glob pattern. Useful for things like `BE_SLN` that need the actual path, not a boolean.
+
+```json
+{
+  "type": "glob-first-path",
+  "pattern": "**/*.sln",
+  "relative_to": "project-root"
+}
+```
+
+| Field | Description |
+|---|---|
+| `pattern` | Required. Glob pattern resolved relative to target root. |
+| `relative_to` | Optional, default `project-root`. Controls whether the returned path is relative to the project root or absolute. |
+
+### `regex-capture-from-files`
+
+Grep across files matching a glob and return the first capture group of the first match.
+
+```json
+{
+  "type": "regex-capture-from-files",
+  "glob": "**/*.csproj",
+  "pattern": "<RootNamespace>([^<]+)</RootNamespace>"
+}
+```
+
+If the regex has no capture group, the entire match is returned.
+
+### `from-variable`
+
+Derive a value from another already-resolved variable using a shell-style expansion.
+
+```json
+{
+  "type": "from-variable",
+  "template": "dotnet build {BE_SLN}"
+}
+```
+
+Tokens `{VAR}` are replaced by the resolved values of referenced variables. Useful for constructing composite commands like `dotnet build <sln>` or `dotnet ef migrations add <Name> --project <Migrations> --startup-project <Api>`.
+
+### `derive`
+
+Transform another variable's value via a simple rule. Supported rules: `basename-no-ext` (strip directory and final extension), `dirname` (directory portion), `lower`, `upper`.
+
+```json
+{
+  "type": "derive",
+  "from": "BE_SLN",
+  "rule": "basename-no-ext"
+}
+```
+
+Example: `BE_SLN=backend/MyApp.sln` with `derive.basename-no-ext` → `MyApp`.
+
 ### `static`
 
 Always return a fixed value. Useful as a final fallback in the `detect[]` chain.
