@@ -90,24 +90,24 @@
       "source": "base/templates/GUIDELINES.template.md"
     },
     "CLAUDE.md": {
-      "hash": "sha256:ee08e06869b04f90c41d98a133a3b0de5f9bb8568fdd60ebb8c68e15e2f88393",
+      "hash": "sha256:8f44cb75bf0efd061918193d97372405496c3529d83182c20bf9a08834607ae1",
       "category": "templates",
-      "source": "base/CLAUDE.md"
+      "source": "base/claude"
     },
     ".claude/AGENTS.md": {
       "hash": "sha256:94ef55d82f8dc721dc7387abe13c5ec8f21127186cc6d6390d1c0b54d379ca47",
       "category": "templates",
-      "source": "base/AGENTS.md"
+      "source": "base/agents-md"
+    },
+    ".claude/settings.json": {
+      "hash": "sha256:540e419f443839ee85a45b575ec917a02e5e12296b14eede05435d38ac026115",
+      "category": "config",
+      "source": "base/settings"
     },
     ".claude/anti-patterns.md": {
       "hash": "sha256:9e03b5f04b1c08ef639e237d0e866654901ca28bee5a4f659c230087a80553fd",
       "category": "config",
       "source": "base/anti-patterns.md"
-    },
-    ".claude/settings.json": {
-      "hash": "sha256:540e419f443839ee85a45b575ec917a02e5e12296b14eede05435d38ac026115",
-      "category": "config",
-      "source": "base/settings.json"
     },
     "backend/.claude/agents/testad-code-reviewer.md": {
       "hash": "sha256:dc2f99c1880cd7ea6b74a6649e57fc3b6c78151abe4c09879d0ca29fc909d199",

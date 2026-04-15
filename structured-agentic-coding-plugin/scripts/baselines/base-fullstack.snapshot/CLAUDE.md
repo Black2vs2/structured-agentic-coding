@@ -12,6 +12,7 @@ Available commands (run via Bash tool):
 - `sac-graph blast-radius <target>... [--max-depth N]` — affected files, symbols, tests, and config references
 - `sac-graph test-coverage <symbol>` — which tests cover a symbol? (name-based confidence)
 - `sac-graph changes-since <commit>` — symbols added/modified/deleted since a commit
+- `sac-graph rebuild` — rebuild the index
 
 All commands output JSON. Use graph tools first for structural queries. If a command fails, fall back to Grep immediately — do not retry. Also use Grep for: translation keys, route strings, config values, environment variables.
 
@@ -23,9 +24,8 @@ If configured, these tools enhance code review:
 - **Sentry** — production error tracking, deployment health
 
 ## Coding Standards
-Rules are enforced by code review agents:
-- `.claude/rules/fe-rules.json` — Frontend rules
-- `.claude/rules/be-rules.json` — Backend rules
+
+Stack-specific rules are enforced by code review agents. See the Backend/Frontend sections below for scope-specific rule files.
 
 Agent manifest (auto-generated):
 - `.claude/AGENTS.md` — full list of all agents with roles and locations
@@ -33,10 +33,6 @@ Agent manifest (auto-generated):
 Agent directories:
 - `.claude/agents/codebase/` — cross-cutting agents (masterplan, docs)
 - `.claude/agents/domain/` — project-specific agents (research, impact, testing)
-- `backend/.claude/agents/` — Backend agents (dev, reviewer, fixer)
-- `frontend/.claude/agents/` — Frontend agents (dev, reviewer, fixer)
-- `backend/.claude/agents/be-scans/` — Backend scan playbooks
-- `frontend/.claude/agents/fe-scans/` — Frontend scan playbooks
 
 ## IMPORTANT: Dynamic Agent Discovery
 Before dispatching work, orchestrator agents MUST:
@@ -59,20 +55,38 @@ Also triggers on: "Add [feature]", "Build [feature]", "Implement [feature]"
 Agent definitions: `.claude/agents/codebase/*-masterplan-{architect,executor,reviewer}.md`
 Masterplans: `docs/masterplans/` | Executed: `docs/masterplans/executed/`
 
-## Commands
-- Frontend dev: `npm run dev`
-- Backend dev: `echo run`
-- Database: `echo db`
-- Migrations: `echo mig`
-- Format frontend: `npm run format`
-- Format backend: `echo format`
-- Lint frontend: `npm run lint`
-- Frontend build: `npm run build`
-- Frontend tests: `npm run test`
-- Backend tests: `echo test`
-- E2E tests: `echo e2e`
-- Rebuild graph: `sac-graph rebuild`
-
 ## Git Conventions
 - Conventional commits, title-only format
 - No co-author trailers unless explicitly requested
+
+## Backend
+
+Rules: `.claude/rules/be-rules.json` — enforced by backend code review agents.
+
+Agent directories:
+- `backend/.claude/agents/` — Backend agents (dev, reviewer, fixer)
+- `backend/.claude/agents/be-scans/` — Backend scan playbooks
+
+Commands:
+- Dev: `echo run`
+- Build: `echo build`
+- Test: `echo test`
+- Format: `echo format`
+- Database: `echo db`
+- Migrations: `echo mig`
+
+## Frontend
+
+Rules: `.claude/rules/fe-rules.json` — enforced by frontend code review agents.
+
+Agent directories:
+- `frontend/.claude/agents/` — Frontend agents (dev, reviewer, fixer)
+- `frontend/.claude/agents/fe-scans/` — Frontend scan playbooks
+
+Commands:
+- Dev: `npm run dev`
+- Build: `npm run build`
+- Test: `npm run test`
+- Format: `npm run format`
+- Lint: `npm run lint`
+- E2E tests: `echo e2e`

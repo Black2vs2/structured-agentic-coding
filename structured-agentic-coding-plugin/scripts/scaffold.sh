@@ -68,31 +68,58 @@ load_profile_variables() {
   done < <(jq -r '.variables[]? | select(.default != null) | [.key, .default] | @tsv' "$manifest" 2>/dev/null)
 }
 
-# --- Helper: concatenate fragments per SCOPE ---
-# Usage: concat_fragments <fragment_dir> <output_file>
-# Expects fragment_dir to contain _core.<ext>, _be-section.<ext>, _fe-section.<ext>
-# where <ext> matches the output_file extension.
-concat_fragments() {
+# --- Helper: render a fragmented template per SCOPE ---
+# Usage: render_fragmented_template <fragment_dir> <output_file> [<source_rel>] [<category>]
+# Concatenates _core.<ext> + _be-section.<ext> (if BE scope) + _fe-section.<ext> (if FE scope),
+# where <ext> is derived from output_file. Then applies placeholder replacement,
+# skip-if-exists behavior, and manifest tracking — same contract as copy_and_replace.
+render_fragmented_template() {
   local fragment_dir="$1"
   local output_file="$2"
-  local ext="${output_file##*.}"
+  local source_rel="${3:-}"
+  local category="${4:-}"
 
+  if [[ -f "$output_file" ]]; then
+    echo "SKIP: $output_file (already exists)"
+    SKIPPED=$((SKIPPED + 1))
+    return
+  fi
+
+  local ext="${output_file##*.}"
   local core="$fragment_dir/_core.$ext"
   local be="$fragment_dir/_be-section.$ext"
   local fe="$fragment_dir/_fe-section.$ext"
 
   if [[ ! -f "$core" ]]; then
-    echo "ERROR: missing fragment $core" >&2
+    echo "ERROR: missing required fragment $core" >&2
     return 1
   fi
 
   mkdir -p "$(dirname "$output_file")"
   cat "$core" > "$output_file"
-  if scope_includes_be && [[ -f "$be" ]]; then
+  if scope_includes_be && [[ -f "$be" && -s "$be" ]]; then
     cat "$be" >> "$output_file"
   fi
-  if scope_includes_fe && [[ -f "$fe" ]]; then
+  if scope_includes_fe && [[ -f "$fe" && -s "$fe" ]]; then
     cat "$fe" >> "$output_file"
+  fi
+
+  # Replace placeholders (same logic as copy_and_replace)
+  for key in "${!PLACEHOLDERS[@]}"; do
+    local token="__${key}__"
+    local value="${PLACEHOLDERS[$key]}"
+    local escaped_value
+    escaped_value=$(printf '%s' "$value" | sed 's/[&/\]/\\&/g')
+    sed -i "s|${token}|${escaped_value}|g" "$output_file"
+  done
+
+  echo "CREATE: $output_file"
+  CREATED=$((CREATED + 1))
+
+  # Track for manifest (source_rel identifies the fragment directory, not a single file)
+  if [[ -n "$source_rel" && -n "$category" ]]; then
+    local dst_rel="${output_file#$TARGET_DIR/}"
+    printf '%s\t%s\t%s\n' "$dst_rel" "$source_rel" "$category" >> "$MANIFEST_ENTRIES"
   fi
 }
 
@@ -183,15 +210,15 @@ for f in "$SCAFFOLD_DIR/base/templates/"*; do
     "base/templates/${name}" "templates"
 done
 
-# Root files
-copy_and_replace "$SCAFFOLD_DIR/base/CLAUDE.md" "$TARGET_DIR/CLAUDE.md" \
-  "base/CLAUDE.md" "templates"
-copy_and_replace "$SCAFFOLD_DIR/base/AGENTS.md" "$TARGET_DIR/.claude/AGENTS.md" \
-  "base/AGENTS.md" "templates"
+# Root files — CLAUDE.md, AGENTS.md, settings.json assembled from fragments per SCOPE
+render_fragmented_template "$SCAFFOLD_DIR/base/claude" "$TARGET_DIR/CLAUDE.md" \
+  "base/claude" "templates"
+render_fragmented_template "$SCAFFOLD_DIR/base/agents-md" "$TARGET_DIR/.claude/AGENTS.md" \
+  "base/agents-md" "templates"
+render_fragmented_template "$SCAFFOLD_DIR/base/settings" "$TARGET_DIR/.claude/settings.json" \
+  "base/settings" "config"
 copy_and_replace "$SCAFFOLD_DIR/base/anti-patterns.md" "$TARGET_DIR/.claude/anti-patterns.md" \
   "base/anti-patterns.md" "config"
-copy_and_replace "$SCAFFOLD_DIR/base/settings.json" "$TARGET_DIR/.claude/settings.json" \
-  "base/settings.json" "config"
 
 # Create directories
 mkdir -p "$TARGET_DIR/docs/masterplans/executed" "$TARGET_DIR/docs/reports"

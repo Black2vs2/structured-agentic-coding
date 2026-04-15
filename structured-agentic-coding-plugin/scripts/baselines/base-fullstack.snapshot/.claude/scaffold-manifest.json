@@ -87,24 +87,24 @@
       "source": "base/templates/GUIDELINES.template.md"
     },
     "CLAUDE.md": {
-      "hash": "sha256:42309652f78c3fbed086dade5334126f82135ca9613b9cd0e6689a1126bf5a53",
+      "hash": "sha256:7a333eae32172000b6642607a8b8d07081d8ff06cac824f009ee144073eb2343",
       "category": "templates",
-      "source": "base/CLAUDE.md"
+      "source": "base/claude"
     },
     ".claude/AGENTS.md": {
       "hash": "sha256:edbb40e88384ee1711c584385e98896dbd56ea66e1dbe2c78864b601ef4922c0",
       "category": "templates",
-      "source": "base/AGENTS.md"
+      "source": "base/agents-md"
+    },
+    ".claude/settings.json": {
+      "hash": "sha256:540e419f443839ee85a45b575ec917a02e5e12296b14eede05435d38ac026115",
+      "category": "config",
+      "source": "base/settings"
     },
     ".claude/anti-patterns.md": {
       "hash": "sha256:c41c60759741737a7f4b2289eaaaca5a5d50fc614c29d34adb5fcd1b9ca8952b",
       "category": "config",
       "source": "base/anti-patterns.md"
-    },
-    ".claude/settings.json": {
-      "hash": "sha256:540e419f443839ee85a45b575ec917a02e5e12296b14eede05435d38ac026115",
-      "category": "config",
-      "source": "base/settings.json"
     }
   }
 }

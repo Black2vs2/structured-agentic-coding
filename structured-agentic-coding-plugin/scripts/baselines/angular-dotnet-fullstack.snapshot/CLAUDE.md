@@ -12,6 +12,7 @@ Available commands (run via Bash tool):
 - `sac-graph blast-radius <target>... [--max-depth N]` — affected files, symbols, tests, and config references
 - `sac-graph test-coverage <symbol>` — which tests cover a symbol? (name-based confidence)
 - `sac-graph changes-since <commit>` — symbols added/modified/deleted since a commit
+- `sac-graph rebuild` — rebuild the index
 
 All commands output JSON. Use graph tools first for structural queries. If a command fails, fall back to Grep immediately — do not retry. Also use Grep for: translation keys, route strings, config values, environment variables.
 
@@ -23,9 +24,8 @@ If configured, these tools enhance code review:
 - **Sentry** — production error tracking, deployment health
 
 ## Coding Standards
-Rules are enforced by code review agents:
-- `.claude/rules/fe-rules.json` — Frontend rules
-- `.claude/rules/be-rules.json` — Backend rules
+
+Stack-specific rules are enforced by code review agents. See the Backend/Frontend sections below for scope-specific rule files.
 
 Agent manifest (auto-generated):
 - `.claude/AGENTS.md` — full list of all agents with roles and locations
@@ -33,10 +33,6 @@ Agent manifest (auto-generated):
 Agent directories:
 - `.claude/agents/codebase/` — cross-cutting agents (masterplan, docs)
 - `.claude/agents/domain/` — project-specific agents (research, impact, testing)
-- `backend/.claude/agents/` — Backend agents (dev, reviewer, fixer)
-- `frontend/.claude/agents/` — Frontend agents (dev, reviewer, fixer)
-- `backend/.claude/agents/be-scans/` — Backend scan playbooks
-- `frontend/.claude/agents/fe-scans/` — Frontend scan playbooks
 
 ## IMPORTANT: Dynamic Agent Discovery
 Before dispatching work, orchestrator agents MUST:
@@ -59,20 +55,38 @@ Also triggers on: "Add [feature]", "Build [feature]", "Implement [feature]"
 Agent definitions: `.claude/agents/codebase/*-masterplan-{architect,executor,reviewer}.md`
 Masterplans: `docs/masterplans/` | Executed: `docs/masterplans/executed/`
 
-## Commands
-- Frontend dev: `cd frontend && npx nx serve app`
-- Backend dev: `dotnet run --project backend/src/App.Api`
-- Database: `docker compose -f docker/docker-compose.yml up -d`
-- Migrations: `dotnet ef migrations add Mig --project backend/src/App.Migrations --startup-project backend/src/App.Api`
-- Format frontend: `cd frontend && npx prettier --write .`
-- Format backend: `dotnet csharpier backend/`
-- Lint frontend: `cd frontend && npx nx lint`
-- Frontend build: `cd frontend && npm run build`
-- Frontend tests: `cd frontend && npm run test`
-- Backend tests: `dotnet test backend/App.sln`
-- E2E tests: `cd frontend && npx playwright test`
-- Rebuild graph: `sac-graph rebuild`
-
 ## Git Conventions
 - Conventional commits, title-only format
 - No co-author trailers unless explicitly requested
+
+## Backend
+
+Rules: `.claude/rules/be-rules.json` — enforced by backend code review agents.
+
+Agent directories:
+- `backend/.claude/agents/` — Backend agents (dev, reviewer, fixer)
+- `backend/.claude/agents/be-scans/` — Backend scan playbooks
+
+Commands:
+- Dev: `dotnet run --project backend/src/App.Api`
+- Build: `dotnet build backend/App.sln`
+- Test: `dotnet test backend/App.sln`
+- Format: `dotnet csharpier backend/`
+- Database: `docker compose -f docker/docker-compose.yml up -d`
+- Migrations: `dotnet ef migrations add Mig --project backend/src/App.Migrations --startup-project backend/src/App.Api`
+
+## Frontend
+
+Rules: `.claude/rules/fe-rules.json` — enforced by frontend code review agents.
+
+Agent directories:
+- `frontend/.claude/agents/` — Frontend agents (dev, reviewer, fixer)
+- `frontend/.claude/agents/fe-scans/` — Frontend scan playbooks
+
+Commands:
+- Dev: `cd frontend && npx nx serve app`
+- Build: `cd frontend && npm run build`
+- Test: `cd frontend && npm run test`
+- Format: `cd frontend && npx prettier --write .`
+- Lint: `cd frontend && npx nx lint`
+- E2E tests: `cd frontend && npx playwright test`
