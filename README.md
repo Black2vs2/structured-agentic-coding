@@ -35,6 +35,24 @@ Structured Agentic Coding scaffolds a complete `.claude/` infrastructure into yo
 > [!NOTE]
 > Requires [Claude Code CLI](https://docs.anthropic.com/en/docs/claude-code) installed and a git repository.
 
+> [!IMPORTANT]
+> **macOS users:** the scaffold script requires Bash 4+ and GNU sed (the system defaults — Bash 3.2 and BSD sed — are not compatible). Install via Homebrew:
+>
+> ```bash
+> brew install bash gnu-sed
+> ```
+>
+> Then add GNU sed to your PATH (in `~/.zshrc` or `~/.bash_profile`):
+>
+> ```bash
+> export PATH="/usr/local/opt/gnu-sed/libexec/gnubin:$PATH"
+> # On Apple Silicon use /opt/homebrew/opt/gnu-sed/libexec/gnubin
+> ```
+>
+> Brew Bash is auto-discovered via the script's `#!/usr/bin/env bash` shebang as long as `/usr/local/bin` (Intel) or `/opt/homebrew/bin` (Apple Silicon) is ahead of `/bin` in your PATH — which is the Homebrew default.
+>
+> Linux and CI environments work out of the box.
+
 ### Option A — Install as a plugin (recommended)
 
 **1. Add the marketplace and install the plugin**
