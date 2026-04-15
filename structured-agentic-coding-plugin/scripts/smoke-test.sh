@@ -193,5 +193,24 @@ run_scenario "nestjs-query-be" "nestjs-query-be" \
   FIREBASE_EMULATOR="bun run firebase:emulator:start" \
   GRAPHQL_SCHEMA_OUT="src/schema.gql"
 
+run_scenario "refine-nestjs-query-fe" "refine-nestjs-query-fe" \
+  PREFIX=testrnq \
+  PROJECT_NAME="Test Refine NestJS Query FE" \
+  PROJECT_DESC="Test refine-nestjs-query-fe project for smoke testing" \
+  SCOPE=fe \
+  FE_DIR=. \
+  FE_RUNTIME=bun \
+  FE_SERVE="bun run dev" \
+  FE_BUILD="bun run build" \
+  FE_BUILD_STAGE="bun run build:stage" \
+  FE_FORMAT="bun run format" \
+  FE_LINT="bun run lint" \
+  FE_LINT_FIX="bun run lint:fix" \
+  FE_TYPECHECK="bun run tsc" \
+  FE_TEST="bun run test" \
+  E2E_CMD="bun run test:e2e" \
+  GRAPHQL_CODEGEN="bun run codegen" \
+  GRAPHQL_SCHEMA_SRC="http://localhost:3000/graphql"
+
 echo ""
 echo "=== All scenarios complete ==="
