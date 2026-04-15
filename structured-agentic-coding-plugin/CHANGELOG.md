@@ -6,6 +6,31 @@ Versioning: [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+## [4.3.0] - 2026-04-15
+
+### Added
+- **New profile `nestjs-query-be`** — NestJS 11 + TypeORM + `@ptc-org/nestjs-query-*` + Firebase Auth + pg-boss + Jest + Bun. Backend-only (for split-repo setups). 5 agents, 42 rules, 10 scan playbooks, anti-patterns
+- **New profile `refine-nestjs-query-fe`** — React 19 + Vite 7 + Refine.dev 5 + `@refinedev/nestjs-query` + shadcn/ui + Tailwind 4 + Firebase Auth + Zod v4 + Bun. Frontend-only. 5 agents + `graphql-codegen-sync` domain agent, 44 rules, 10 scan playbooks, anti-patterns
+- **New slash command `/graphql-codegen-sync`** (refine-nestjs-query-fe profile) — wraps the existing `bun run codegen` pipeline with optional schema-source override
+- **SCOPE flag** in scaffold.sh — `SCOPE=fe|be|fullstack` (default `fullstack` for retro-compat). Single-stack profiles use `be` / `fe` scope to cleanly scaffold split-repo projects
+- **Per-profile `variables.json` manifest** — each profile declares its placeholders, detection strategies, scope rules, and conditional requirements. See `docs/variables-schema.md`
+- **Context-first detection** in the skill — reads README.md, CLAUDE.md, docs/*.md BEFORE systematic globs so declared facts ("Bun required", "Zod v4") drive variable defaults
+- **Always-active profile-migration detection** in `/upgrade-agentic-coding` — re-scans on every upgrade and offers migration if a different profile matches better (~5s overhead)
+- **upgrade.sh `--migrate-profile <new>` flag** — carries over compatible placeholders and re-runs scaffold.sh with the new profile; scaffold.sh's skip-if-exists preserves user modifications
+- **Profile CLAUDE.md overlay mechanism** — `profiles/<profile>/claude-section.md` is appended to the generated CLAUDE.md after the base fragments, letting profile-specific commands (database, migrations, emulator) live with the profile
+- **Smoke test harness** — `scripts/smoke-test.sh` with fixture scaffolds and baseline diffs. Four scenarios: base-fullstack, angular-dotnet-fullstack, nestjs-query-be, refine-nestjs-query-fe
+
+### Changed
+- **Base CLAUDE.md template fragmented** into `base/claude/{_core, _be-section, _fe-section}.md`. scaffold.sh concatenates the fragments per SCOPE. `AGENTS.md` and `settings.json` use the same pattern
+- **Base `_be-section.md` Backend commands** — removed `DB_START` and `MIGRATION` placeholders (those are stack-specific). Profiles re-add their specific commands via their own `claude-section.md` overlay
+- **angular-dotnet migrated to manifest system** — all variables (BE_SLN, BE_NAMESPACE, BE_API_PROJECT, etc.) now declared in `profiles/angular-dotnet/variables.json` instead of hardcoded in the skill
+- **scaffold.sh generic profile handler** — replaced the angular-dotnet-specific block with a generic loop that works for any profile with a `profiles/<name>/` scaffold directory
+- **Manifest now records `scope`** alongside profile, placeholders, file hashes — used by the upgrade skill's profile-migration detection
+- **README** — features table shows all 4 profiles with scope, agent/rule/scan counts; added profile-selection decision tree
+
+### Fixed
+- **macOS compatibility documented** — scaffold.sh requires Bash 4+ and GNU sed. README now documents `brew install bash gnu-sed` and PATH setup for macOS users (Linux and CI environments work out of the box)
+
 ## [4.2.0] - 2026-04-14
 
 ### Fixed

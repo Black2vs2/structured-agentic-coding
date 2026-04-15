@@ -103,13 +103,13 @@ Open Claude Code in your target project and run `/structured-agentic-coding`. On
 
 ## Features
 
-| | Base Profile | Angular + .NET Profile |
-|---|---|---|
-| **Agents** | 7 — masterplan architect/executor/reviewer, codemap updater, doc enforcer, research, impact analyst | 7 + 12 stack-specific — feature devs, code reviewers, fixers, test generators, E2E, OpenAPI sync |
-| **Coding Rules** | — | 160 (67 backend, 93 frontend) |
-| **Scan Playbooks** | — | 31 (12 backend, 19 frontend) |
-| **Commands** | `/masterplan` `/masterplan-review` `/update-codemaps` `/kill` | All base + `/openapi-sync` |
-| **Documentation** | CLAUDE.md, AGENTS.md, CODEMAP stubs, anti-patterns, templates | Same + stack-specific anti-patterns |
+| | Base | Angular + .NET | NestJS-query BE | Refine-nestjs-query FE |
+|---|---|---|---|---|
+| **Scope** | any | fullstack | backend only | frontend only |
+| **Agents** | 6 core | +12 stack-specific | +5 (feature dev, reviewer, fixer, test writer, migration reviewer) | +5 (feature dev, reviewer, fixer, test writer, resource generator) + codegen sync |
+| **Coding Rules** | — | 160 (67 BE, 93 FE) | 42 | 44 |
+| **Scan Playbooks** | — | 31 (12 BE, 19 FE) | 10 | 10 |
+| **Profile-specific commands** | — | `/openapi-sync` | — | `/graphql-codegen-sync` |
 
 ### Commands
 
@@ -117,15 +117,34 @@ Open Claude Code in your target project and run `/structured-agentic-coding`. On
 |---|---|
 | `/masterplan` | Design and execute a multi-step feature with coordinated agents |
 | `/masterplan-review` | Audit a completed masterplan for implementation completeness |
-| `/update-codemaps` | Regenerate structural documentation from the live codebase |
 | `/kill` | Stop running dev servers |
-| `/openapi-sync` | Regenerate frontend API client from backend OpenAPI spec *(angular-dotnet only)* |
+| `/openapi-sync` | Regenerate frontend API client from backend OpenAPI spec *(angular-dotnet fullstack only)* |
+| `/graphql-codegen-sync` | Regenerate frontend GraphQL types from backend schema *(refine-nestjs-query-fe only)* |
 
 ### Supported Stacks
 
-**Base** — framework-agnostic. Masterplan workflow, codemap system, doc enforcement, research and impact analysis. Works with any language or framework.
+**Base** — framework-agnostic. Masterplan workflow, doc enforcement, research and impact analysis. Works with any language or framework. Use when no specialized profile matches.
 
-**Angular + .NET** — fully configured for Angular 21+ (standalone components, Signals, Nx), .NET 8+ (Clean Architecture, CQRS/MediatR), PostgreSQL/EF Core, OpenAPI 3.x, Jest/Vitest + xUnit/NUnit + Playwright.
+**Angular + .NET** — Angular 17+ (standalone, Signals, Nx), .NET 8+ (Clean Architecture, CQRS/MediatR), PostgreSQL/EF Core, OpenAPI 3.x, Jest/Vitest + xUnit + Playwright. Fullstack only. Use ONLY when the project has BOTH Angular (FE) AND .NET C# (BE).
+
+**NestJS-query Backend** — NestJS 11 + TypeScript + Bun, TypeORM, `@ptc-org/nestjs-query-*` (GraphQL code-first + `@FilterableField` + `CRUDResolver` + assembler pattern), Firebase Auth (guard chain), pg-boss queue, Jest. Backend-only profile (for split-repo setups). Use ONLY when the backend uses nestjs-query.
+
+**Refine-nestjs-query Frontend** — React 19 + Vite 7 + Refine.dev 5 + `@refinedev/nestjs-query` GraphQL client, shadcn/ui + Tailwind 4, Firebase Auth, Zod v4, react-hook-form, Bun. Frontend-only profile. Use ONLY when the frontend uses Refine.dev with the nestjs-query data provider.
+
+### Profile selection
+
+```
+├─ Angular (FE) + .NET (BE) in the same repo?
+│   └─ angular-dotnet  (SCOPE=fullstack)
+├─ NestJS backend with @ptc-org/nestjs-query?
+│   └─ nestjs-query-be  (SCOPE=be)  — in the backend repo
+├─ React + Vite + Refine.dev + @refinedev/nestjs-query?
+│   └─ refine-nestjs-query-fe  (SCOPE=fe)  — in the frontend repo
+└─ otherwise
+    └─ base  (any SCOPE)
+```
+
+For split-repo setups (backend and frontend in separate git repos), scaffold each repo independently with its stack-specific profile and `SCOPE=be` or `SCOPE=fe`. The skill auto-selects the correct scope based on the chosen profile.
 
 <details>
 <summary><strong>Project structure</strong></summary>
