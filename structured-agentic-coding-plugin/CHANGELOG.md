@@ -6,6 +6,11 @@ Versioning: [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+## [4.3.1] - 2026-04-15
+
+### Fixed
+- **`sac-graph` CLI now reachable on PATH** — added `bin/sac-graph` wrapper. Claude Code auto-adds `<plugin>/bin` to PATH, but the previous layout had no `bin/` directory so the CLI (installed by `install-graph-server.sh` into `graph-server/.venv/bin/`) was never callable from scaffolded projects or the `/rebuild-graph` slash command. The wrapper auto-invokes `install-graph-server.sh` on first run if the venv is missing.
+
 ## [4.3.0] - 2026-04-15
 
 ### Added
