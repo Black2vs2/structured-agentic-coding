@@ -14,6 +14,19 @@
 
 set -euo pipefail
 
+# --- macOS portability shim ---
+# Prefer Homebrew gnu-sed's gnubin dir over BSD sed (see scaffold.sh for details).
+for _gnubin in \
+  /usr/local/opt/gnu-sed/libexec/gnubin \
+  /opt/homebrew/opt/gnu-sed/libexec/gnubin \
+; do
+  if [[ -d "$_gnubin" ]]; then
+    export PATH="$_gnubin:$PATH"
+    break
+  fi
+done
+unset _gnubin
+
 # --- Dependency check ---
 if ! command -v jq &>/dev/null; then
   echo "ERROR: jq is required for upgrade. Install it:"

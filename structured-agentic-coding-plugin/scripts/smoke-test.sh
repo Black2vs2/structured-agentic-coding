@@ -21,6 +21,19 @@
 
 set -euo pipefail
 
+# --- macOS portability shim ---
+# Prefer Homebrew gnu-sed's gnubin dir over BSD sed (see scaffold.sh for details).
+for _gnubin in \
+  /usr/local/opt/gnu-sed/libexec/gnubin \
+  /opt/homebrew/opt/gnu-sed/libexec/gnubin \
+; do
+  if [[ -d "$_gnubin" ]]; then
+    export PATH="$_gnubin:$PATH"
+    break
+  fi
+done
+unset _gnubin
+
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 PLUGIN_DIR="$(cd "$SCRIPT_DIR/.." && pwd)"
 SCAFFOLD_DIR="$PLUGIN_DIR/.claude/scaffold"

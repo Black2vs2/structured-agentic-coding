@@ -16,6 +16,22 @@
 
 set -euo pipefail
 
+# --- macOS portability shim ---
+# Homebrew's gnu-sed ships as `gsed` by default, but installs a `sed` symlink
+# under <prefix>/opt/gnu-sed/libexec/gnubin. Prepend that directory if present
+# so the `sed -i "..."` calls below use GNU sed instead of BSD sed.
+# Linux / CI (no such directory) is a no-op.
+for _gnubin in \
+  /usr/local/opt/gnu-sed/libexec/gnubin \
+  /opt/homebrew/opt/gnu-sed/libexec/gnubin \
+; do
+  if [[ -d "$_gnubin" ]]; then
+    export PATH="$_gnubin:$PATH"
+    break
+  fi
+done
+unset _gnubin
+
 SCAFFOLD_DIR="$1"
 TARGET_DIR="$2"
 PROFILE="$3"
