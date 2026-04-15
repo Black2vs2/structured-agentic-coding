@@ -50,22 +50,29 @@ MANIFEST_PATH=""
 CATEGORIES=""
 CONFLICT_MODE="skip"
 PLUGIN_VERSION=""
+MIGRATE_PROFILE=""
 
 while [[ $# -gt 0 ]]; do
   case "$1" in
-    --manifest)       MANIFEST_PATH="$2"; shift 2 ;;
-    --categories)     CATEGORIES="$2"; shift 2 ;;
-    --conflict-mode)  CONFLICT_MODE="$2"; shift 2 ;;
-    --plugin-version) PLUGIN_VERSION="$2"; shift 2 ;;
+    --manifest)         MANIFEST_PATH="$2"; shift 2 ;;
+    --categories)       CATEGORIES="$2"; shift 2 ;;
+    --conflict-mode)    CONFLICT_MODE="$2"; shift 2 ;;
+    --plugin-version)   PLUGIN_VERSION="$2"; shift 2 ;;
+    --migrate-profile)  MIGRATE_PROFILE="$2"; shift 2 ;;
     *) echo "Unknown option: $1"; exit 1 ;;
   esac
 done
 
 # Validate required args
 [[ -z "$MANIFEST_PATH" ]]  && echo "ERROR: --manifest is required"        && exit 1
-[[ -z "$CATEGORIES" ]]     && echo "ERROR: --categories is required"      && exit 1
 [[ -z "$PLUGIN_VERSION" ]] && echo "ERROR: --plugin-version is required"  && exit 1
 [[ ! -f "$MANIFEST_PATH" ]] && echo "ERROR: Manifest not found: $MANIFEST_PATH" && exit 1
+
+# --migrate-profile doesn't require --categories (it re-runs full scaffold for the new profile)
+if [[ -z "$MIGRATE_PROFILE" && -z "$CATEGORIES" ]]; then
+  echo "ERROR: --categories is required (or pass --migrate-profile <new>)"
+  exit 1
+fi
 
 # --- Read manifest ---
 MANIFEST=$(cat "$MANIFEST_PATH")
@@ -83,6 +90,66 @@ PLACEHOLDERS["PLUGIN_DIR"]="$PLUGIN_DIR"
 PREFIX="${PLACEHOLDERS[PREFIX]:-}"
 FE_DIR="${PLACEHOLDERS[FE_DIR]:-}"
 BE_DIR="${PLACEHOLDERS[BE_DIR]:-}"
+
+# --- Profile migration branch ---
+# When --migrate-profile is set, re-run scaffold.sh with the new profile and
+# carry-over placeholders. scaffold.sh's skip-if-exists preserves user files
+# automatically — so existing edits stay untouched and only new profile-specific
+# files get created.
+if [[ -n "$MIGRATE_PROFILE" ]]; then
+  echo "=== Profile migration: $PROFILE → $MIGRATE_PROFILE ==="
+
+  # Carry-over placeholders (always compatible across profiles)
+  CARRY_OVER_KEYS=(PREFIX PROJECT_NAME PROJECT_DESC FE_DIR BE_DIR SCOPE)
+
+  # Build scaffold.sh args
+  SCAFFOLD_SCRIPT="$PLUGIN_DIR/scripts/scaffold.sh"
+  SCAFFOLD_ARGS=()
+  for key in "${CARRY_OVER_KEYS[@]}"; do
+    value="${PLACEHOLDERS[$key]:-}"
+    if [[ -n "$value" ]]; then
+      SCAFFOLD_ARGS+=("$key=$value")
+    fi
+  done
+
+  # For any stack-specific placeholder already resolved in the old manifest,
+  # keep it if it's also declared by the new profile's variables.json (same name = same meaning).
+  # Users can manually re-run scaffold/upgrade after reviewing the result if they need to change a value.
+  NEW_MANIFEST="$SCAFFOLD_DIR/profiles/$MIGRATE_PROFILE/variables.json"
+  if [[ -f "$NEW_MANIFEST" ]]; then
+    while IFS= read -r new_key; do
+      [[ -z "$new_key" ]] && continue
+      for carried_key in "${CARRY_OVER_KEYS[@]}"; do
+        [[ "$new_key" == "$carried_key" ]] && continue 2
+      done
+      existing_value="${PLACEHOLDERS[$new_key]:-}"
+      if [[ -n "$existing_value" ]]; then
+        SCAFFOLD_ARGS+=("$new_key=$existing_value")
+      fi
+    done < <(jq -r '.variables[]?.key' "$NEW_MANIFEST" 2>/dev/null)
+  fi
+
+  echo "Carrying over: ${SCAFFOLD_ARGS[*]}"
+  echo ""
+
+  # Invoke scaffold.sh; it skips any existing files (including user-modified ones).
+  bash "$SCAFFOLD_SCRIPT" "$SCAFFOLD_DIR" "$TARGET_DIR" "$MIGRATE_PROFILE" "${SCAFFOLD_ARGS[@]}"
+
+  # Update the manifest's profile field in-place
+  MANIFEST_OUT="$TARGET_DIR/.claude/scaffold-manifest.json"
+  if [[ -f "$MANIFEST_OUT" ]]; then
+    jq --arg p "$MIGRATE_PROFILE" '.profile = $p' "$MANIFEST_OUT" > "$MANIFEST_OUT.tmp" \
+      && mv "$MANIFEST_OUT.tmp" "$MANIFEST_OUT"
+  fi
+
+  echo ""
+  echo "=== Migration complete ==="
+  echo "Profile: $PROFILE → $MIGRATE_PROFILE"
+  echo ""
+  echo "Review the changes, then run upgrade again (without --migrate-profile)"
+  echo "to pick up the latest plugin version's fixes."
+  exit 0
+fi
 
 # Parse selected categories into array
 IFS=',' read -ra SELECTED_CATEGORIES <<< "$CATEGORIES"

@@ -1,224 +1,217 @@
 ---
 name: upgrade-agentic-coding
-description: Upgrade an existing structured-agentic-coding scaffold to the latest plugin version — selective category updates with modification detection.
+description: Upgrade an existing structured-agentic-coding scaffold to the latest plugin version — selective category updates with modification detection, plus always-active profile-migration detection.
 ---
 
 # Upgrade Agentic Coding
 
 Upgrade a previously scaffolded project to the current plugin version. Compares file hashes to detect user modifications, allows selective category upgrades, and preserves edited files.
 
+**Always-active profile detection (new in 4.3.0):** on every upgrade, re-scan the project to check whether a different profile would now match better (e.g., a `base` project that has gained a NestJS + nestjs-query backend should migrate to `nestjs-query-be`). If a better match is detected, offer migration. This adds ~5s to every upgrade.
+
 ## Prerequisites
 
 - Project must have `.claude/scaffold-manifest.json` (created by `/structured-agentic-coding`)
-- `jq` must be installed (the upgrade script requires it for manifest parsing)
+- `jq` must be installed (required by the upgrade script for manifest parsing)
 
 ## Procedure
 
-### Step 1 — Read Manifest and Detect Versions
-
-Read the scaffold manifest and determine the version delta:
+### Step 1 — Read manifest and detect versions
 
 ```bash
 cat .claude/scaffold-manifest.json
 ```
 
-Extract the `version` field from the manifest. Then find the plugin's current version:
+Extract `version`, `profile`, `scope`, and `placeholders` from the manifest. Find the plugin's current version:
 
 ```bash
-# Find the plugin root (use sort -V to pick the highest version, not just the first match)
 PLUGIN_ROOT=$(find ~/.claude/plugins -name "plugin.json" -path "*/structured-agentic-coding*" -exec dirname {} \; 2>/dev/null | sort -V | tail -1)
 PLUGIN_ROOT=$(dirname "$PLUGIN_ROOT")
 cat "$PLUGIN_ROOT/.claude-plugin/plugin.json"
 ```
 
-If the manifest does not exist, tell the user:
+If the manifest does not exist:
 > "No scaffold manifest found. Run `/structured-agentic-coding` to scaffold your project first."
-Stop here.
 
-If the versions match, tell the user:
-> "Your project is already up to date (v{version})."
-Stop here.
+Stop.
 
-### Step 2 — Show Status Report
+### Step 1b — Profile migration opportunity detection (always active)
 
-Read the CHANGELOG.md from the plugin directory and extract the sections between the manifest version and the current version:
+Before showing the upgrade status, re-run profile detection (the same logic used by `/structured-agentic-coding` Phase 1):
 
-```bash
-cat "$PLUGIN_ROOT/CHANGELOG.md"
-```
+1. **Context pass**: re-read README.md, CLAUDE.md, docs/*.md — extract declared facts
+2. **Systematic scan**: Glob `**/package.json`, `**/*.csproj`, `**/bun.lock`, etc.
+3. **Recommend profile** using the 4-profile selection logic:
+   - Angular + .NET → `angular-dotnet`
+   - NestJS + nestjs-query → `nestjs-query-be`
+   - React + Vite + Refine + nestjs-query → `refine-nestjs-query-fe`
+   - Otherwise → `base`
 
-Present the status:
+Compare the recommendation against the manifest's current `profile` field.
 
-```
-Upgrade available for: {project name from manifest placeholders.PREFIX}
-  Profile: {manifest profile}
-  Current version: {manifest version}
-  Available version: {plugin version}
+**If they match** → silent pass-through to Step 2 (standard upgrade).
 
-Changes since v{manifest version}:
-  {relevant CHANGELOG sections}
-```
-
-### Step 3 — Category Selection
-
-Present the categories with defaults. Read the manifest's files to count how many files are in each category:
+**If they diverge** → print the migration offer:
 
 ```
-Which categories do you want to update?
-  [x] Core agents — {N} files (masterplan architect/executor/reviewer, codemap-updater, etc.)
-  [x] Profile agents — {N} files (BE/FE feature devs, reviewers, fixers, test generators)
-  [x] Commands — {N} files (masterplan.md, update-codemaps.md, etc.)
-  [x] Templates — {N} files (CLAUDE.md, AGENTS.md, ARCHITECTURE.template.md)
-  [ ] Rules & scan playbooks — {N} files (be-rules.json, fe-rules.json, scan playbooks)
-  [ ] Config — {N} files (settings.json, anti-patterns.md)
+Profile migration available: <current> → <recommended>
+
+Reason: the project now matches the <recommended> profile better.
+Detected signals:
+  - <signal 1>
+  - <signal 2>
+
+Migrating keeps your placeholders (PREFIX, PROJECT_NAME, PROJECT_DESC, directory
+paths) and any files you've modified. Stack-specific files (agents, rules, scans)
+get regenerated for the new profile.
+
+Do you want to:
+  1. Migrate to <recommended> (then run the standard upgrade to latest version)
+  2. Stay on <current> and just upgrade to the latest version
+  3. Cancel
 ```
 
-Default selected: `agents-core`, `agents-profile`, `commands`, `templates`.
-Default unselected: `rules-scans`, `config`.
+If user picks **1 (migrate)**: execute Step 1c (migration). If **2 (stay)**: proceed to Step 2. If **3**: exit.
 
-If the profile is `base`, omit the "Profile agents" row and `rules-scans` (those only exist for angular-dotnet).
+### Step 1c — Execute profile migration (if accepted)
 
-Wait for the user to confirm or adjust their selection.
-
-### Step 4 — Modification Detection and Conflict Decision
-
-For all files in the selected categories, compare the current file hash on disk against the manifest hash:
-
-```bash
-# For each file entry in the manifest matching selected categories:
-sha256sum <file-path> | awk '{print "sha256:" $1}'
-# Compare result to manifest .files[path].hash
-```
-
-If ANY files have been modified (hash mismatch), list them and ask:
-
-```
-Modified files detected (you edited these since scaffolding):
-  - {file1}
-  - {file2}
-  - ...
-
-How do you want to handle modified files?
-  → Skip modified files (safe — your edits are preserved)
-  → Force overwrite (your edits will be replaced with the new version)
-```
-
-Wait for the user's choice. If no files are modified, skip this question and proceed with `skip` mode.
-
-### Step 5 — Execute Upgrade
-
-Find the upgrade script and scaffold directory:
-
-```bash
-UPGRADE_SCRIPT=$(find ~/.claude/plugins -name "upgrade.sh" -path "*/structured-agentic-coding*" 2>/dev/null | sort -V | tail -1)
-SCAFFOLD_DIR=$(dirname "$UPGRADE_SCRIPT")/../.claude/scaffold
-```
-
-Run the upgrade script with the collected parameters:
+Run the upgrade script in migrate mode:
 
 ```bash
 bash "$UPGRADE_SCRIPT" \
   "$SCAFFOLD_DIR" \
   "$(pwd)" \
   --manifest ".claude/scaffold-manifest.json" \
-  --categories "{comma-separated selected categories}" \
-  --conflict-mode "{skip or force}" \
-  --plugin-version "{plugin version}"
+  --migrate-profile "<new-profile>" \
+  --plugin-version "<version>"
 ```
 
-### Step 6 — Report Results
+The script:
+1. Carries over the manifest's `PREFIX`, `PROJECT_NAME`, `PROJECT_DESC`, `FE_DIR`, `BE_DIR`, `SCOPE` (if the new profile's scope is compatible)
+2. Re-runs detection for the new profile's manifest (prompts user for any variables that cannot be detected)
+3. Scaffolds new profile-specific files (agents, rules, scans)
+4. Regenerates `CLAUDE.md` with the new claude-section overlay appended
+5. Preserves any file the user has modified (hash-mismatch → always skip)
+6. Updates `scaffold-manifest.json` with the new profile + new file hashes
 
-Parse the script output and present a summary:
+After migration, continue with Step 2 (standard upgrade) to pick up the latest plugin version's fixes.
+
+### Step 2 — Show upgrade status report
+
+Read `CHANGELOG.md` and extract sections between the manifest's version and the current plugin version:
+
+```bash
+cat "$PLUGIN_ROOT/CHANGELOG.md"
+```
+
+Present:
 
 ```
-Upgrade complete: v{old} → v{new}
+Upgrade available for: <project name from PREFIX>
+  Profile: <manifest profile> (may have been migrated in Step 1c)
+  Scope: <manifest scope>
+  Current version: <manifest version>
+  Available version: <plugin version>
 
-  Updated:  {N} files
-  Created:  {N} new files
-  Skipped:  {N} files (modified by you)
-  Forced:   {N} files (overwritten)
-  Removed upstream: {N} files (no longer in new version — not deleted)
+Changes since v<manifest version>:
+  <relevant CHANGELOG sections>
+```
 
-{If any files were skipped:}
+### Step 3 — Category selection
+
+Present categories with defaults. Count files in each category from the manifest:
+
+```
+Which categories do you want to update?
+  [x] Core agents — <N> files (masterplan, doc-enforcer, research, impact)
+  [x] Profile agents — <N> files (BE/FE feature devs, reviewers, fixers, test writers)
+  [x] Commands — <N> files
+  [x] Templates — <N> files (CLAUDE.md fragments, AGENTS.md, ARCHITECTURE.md stub)
+  [ ] Rules & scan playbooks — <N> files
+  [ ] Config — <N> files (settings.json, anti-patterns.md)
+```
+
+Defaults selected: `agents-core`, `agents-profile`, `commands`, `templates`.
+Defaults unselected: `rules-scans`, `config`.
+
+For `profile == "base"`, omit "Profile agents" and "Rules & scan playbooks" rows.
+
+Wait for confirmation.
+
+### Step 4 — Modification detection and conflict decision
+
+For each selected category, compare current file hash on disk against the manifest hash:
+
+```bash
+sha256sum <file-path> | awk '{print "sha256:" $1}'
+```
+
+If any files have been modified (hash mismatch), list them:
+
+```
+Modified files detected (you edited these since scaffolding):
+  - <file1>
+  - <file2>
+
+How do you want to handle modified files?
+  → Skip modified files (safe — your edits are preserved)
+  → Force overwrite (your edits will be replaced with the new version)
+```
+
+Wait for choice. If no files modified, skip this question and proceed with `skip` mode.
+
+### Step 5 — Execute upgrade
+
+```bash
+bash "$UPGRADE_SCRIPT" \
+  "$SCAFFOLD_DIR" \
+  "$(pwd)" \
+  --manifest ".claude/scaffold-manifest.json" \
+  --categories "<comma-separated selected categories>" \
+  --conflict-mode "<skip|force>" \
+  --plugin-version "<version>"
+```
+
+### Step 6 — Report
+
+```
+Upgrade complete: v<old> → v<new>
+  Profile: <profile> (migrated from <old> | unchanged)
+
+  Updated:  <N> files
+  Created:  <N> new files
+  Skipped:  <N> files (modified by you)
+  Forced:   <N> files (overwritten)
+  Removed upstream: <N> files (no longer in new version — not deleted)
+
+<if any files were skipped:>
   Skipped files (your edits preserved):
-    - {file1}
-    - {file2}
+    - <file>
 
-  Tip: To see what changed in the new templates, compare your version
-  against the plugin's source templates in: {SCAFFOLD_DIR}
+  Tip: compare your version against the plugin's source templates in:
+  <SCAFFOLD_DIR>
 
-{If any files were removed upstream:}
-  Files removed in the new version (not deleted from your project):
-    - {file1}
-    - {file2}
+<if any files were removed upstream:>
+  Files removed in the new version (still present in your project):
+    - <file>
 
-  You may want to remove these manually if they are no longer needed.
+  Remove these manually if no longer needed.
 ```
 
-### Step 7 — Post-Upgrade Migration (codemap → graph)
+### Step 7 — Post-upgrade migrations (version-specific)
 
-If the upgrade crossed from a codemap-based version to a graph-based version (manifest version < 4.0 and plugin version >= 4.0), run these additional migration steps:
+If crossing major version boundaries, additional migrations may apply. See the CHANGELOG for version-specific migration notes.
 
-**7a. Offer to delete stale scaffolded files:**
-Check for REMOVED_UPSTREAM entries in the upgrade output. Ask the user:
-> "These files were removed in the new version (replaced by the code graph MCP server). Delete them?"
-> - `.claude/agents/codebase/{PREFIX}-codemap-updater.md`
-> - `.claude/commands/update-codemaps.md`
+## Migration: projects without a manifest
 
-If user confirms, delete them:
-```bash
-rm -f ".claude/agents/codebase/{PREFIX}-codemap-updater.md"
-rm -f ".claude/commands/update-codemaps.md"
-```
+If the project was scaffolded before manifest tracking existed, offer to generate one from the current state:
 
-**7b. Clean up generated codemaps:**
-```
-Glob("**/CODEMAP.md")
-```
-If any files found, ask:
-> "These CODEMAP.md files were generated by the old codemap system. The code graph replaces them. Delete? [list files]"
+> "This project was scaffolded before version tracking. I can generate a manifest from your current files so future upgrades work. This hashes your current files as the baseline — any changes you've made since scaffolding become the 'original' state. Proceed?"
 
-If confirmed, delete each listed file.
-
-**7c. Verify CLI is available:**
-Run `sac-graph --help` to confirm the graph CLI is installed. If not found, run the install script:
-```bash
-bash "$PLUGIN_ROOT/scripts/install-graph-server.sh"
-```
-
-**7d. Add .code-graph/ to .gitignore:**
-```bash
-grep -q "^\.code-graph/" .gitignore 2>/dev/null || echo ".code-graph/" >> .gitignore
-```
-
-**7e. Install graph server:**
-```bash
-bash "$PLUGIN_ROOT/scripts/install-graph-server.sh"
-```
-
-**7f. Report:**
-> "Migration complete. Graph CLI configured."
-> "Run `sac-graph rebuild` to build the initial code graph, or it will auto-build on first query."
-> "AGENTS.md can be regenerated with: `bash .claude/scripts/regenerate-agents-md.sh`"
-
-## Migration: Projects Without a Manifest
-
-If the user runs this command on a project that was scaffolded before the manifest feature existed (no `.claude/scaffold-manifest.json`), offer to generate one:
-
-> "This project was scaffolded before version tracking was added. I can generate a manifest from your current files so future upgrades work. This will hash your current files as the baseline — any changes you've made since scaffolding will be treated as the 'original' state. Proceed?"
-
-If the user agrees:
-1. Ask for the original plugin version (default: `1.0.0`)
-2. Ask for the profile used (`base` or `angular-dotnet`)
-3. Scan `.claude/agents/`, `.claude/commands/`, etc. to find scaffolded files
-4. Read `CLAUDE.md` to extract ALL placeholder values. The manifest must include every placeholder the templates use, or the upgrade script will leave `__PLACEHOLDER__` tokens in output files. Required placeholders for `angular-dotnet`:
-   - `PREFIX` — agent filename prefix (e.g. `recruitadev`)
-   - `PROJECT_NAME` — display name (e.g. `RecruitADev`)
-   - `PROJECT_DESC` — short description (e.g. `recruitment management platform`)
-   - `BE_DIR` — backend directory (e.g. `backend`)
-   - `FE_DIR` — frontend directory (e.g. `frontend`)
-   - `BE_RUN`, `BE_BUILD`, `BE_TEST`, `BE_FORMAT`, `BE_SLN`, `BE_API_PROJECT`, `BE_NAMESPACE`
-   - `FE_SERVE`, `FE_BUILD`, `FE_TEST`, `FE_FORMAT`, `FE_LINT`
-   - `DB_START`, `MIGRATION`, `E2E_CMD`
+If yes:
+1. Ask for the original plugin version (default `1.0.0`)
+2. Ask for the profile used
+3. Scan `.claude/` to find scaffolded files
+4. Read `CLAUDE.md` to extract placeholder values — all placeholders the current templates use must be supplied, otherwise the upgrade script will leave `__KEY__` tokens in output files
 5. Hash all found files and generate the manifest
-6. Then proceed with the normal upgrade flow
+6. Proceed with the normal upgrade flow
