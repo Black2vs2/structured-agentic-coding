@@ -3,6 +3,9 @@
   "scaffoldedAt": "<NORMALIZED_TIMESTAMP>",
   "updatedAt": null,
   "profile": "nestjs-query-be",
+  "profiles": [
+    "nestjs-query-be"
+  ],
   "scope": "be",
   "placeholders": {
     "BE_BUILD": "bun run build",
@@ -87,7 +90,7 @@
       "source": "base/templates/GUIDELINES.template.md"
     },
     "CLAUDE.md": {
-      "hash": "sha256:4cf8159e41b7556ccaf2939193af54776ae2521e5e9f649d29ca7519cb2b6287",
+      "hash": "sha256:ff5bc2c23dba51ad4cfac0cc445a7933606a89cd8a6b06f8eae23ba3ea89eb66",
       "category": "templates",
       "source": "base/claude"
     },

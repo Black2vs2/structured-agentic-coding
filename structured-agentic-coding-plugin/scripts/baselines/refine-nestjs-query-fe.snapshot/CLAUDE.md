@@ -120,3 +120,4 @@ live with the profile.
 - GraphQL codegen: `bun run codegen`
 - Tests (Vitest): `bun run test`
 - E2E tests: `bun run test:e2e`
+

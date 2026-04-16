@@ -9,10 +9,20 @@ Scaffold a complete agentic coding infrastructure into the current project. This
 
 ## Profiles
 
+Profiles are split by frontend vs. backend stack, following the same pattern as the NestJS/Refine pair. Two side-specific profiles can be **stacked** to cover a fullstack project, or an **umbrella profile** can be selected as a pre-composed shortcut.
+
 - **base** — Framework-agnostic core: masterplan system, doc enforcer, research / impact agents, templates, commands. Works with any tech stack. **Use this when the project does NOT match a specialized profile.**
-- **angular-dotnet** — Base + Angular + Nx + .NET Clean Architecture + PostgreSQL / EF Core + Playwright. Fullstack. **Use this ONLY when the project uses BOTH Angular (frontend) AND .NET C# (backend).** Angular + non-.NET backend = `base`.
-- **nestjs-query-be** — Base + NestJS 11 + TypeORM + `@ptc-org/nestjs-query-*` + Firebase Auth + pg-boss + Jest + Bun. **Use this ONLY when the backend is NestJS with the nestjs-query GraphQL pattern.** NestJS without nestjs-query = `base`.
-- **refine-nestjs-query-fe** — Base + React 19 + Vite + Refine.dev 5 + `@refinedev/nestjs-query` + shadcn/ui + Tailwind 4 + Firebase Auth + Zod v4 + Bun. **Use this ONLY when the frontend uses Refine.dev with the nestjs-query GraphQL client.** React without Refine = `base`.
+- **angular-fe** — Base + Angular + Nx + Playwright frontend rules, agents, scans. FE-only. **Use this when the frontend is Angular/Nx and the backend doesn't match `dotnet-be`.**
+- **dotnet-be** — Base + .NET Clean Architecture + CQRS + EF Core + PostgreSQL backend rules, agents, scans. BE-only. **Use this when the backend is .NET and the frontend doesn't match `angular-fe`.**
+- **angular-dotnet** — Umbrella for Angular + .NET fullstack. Composes `angular-fe` + `dotnet-be` and adds the `/openapi-sync` command and the e2e-agent. **Use this when the project uses BOTH Angular (frontend) AND .NET C# (backend).**
+- **nestjs-query-be** — Base + NestJS 11 + TypeORM + `@ptc-org/nestjs-query-*` + Firebase Auth + pg-boss + Jest + Bun. BE-only. **Use this when the backend is NestJS with the nestjs-query GraphQL pattern.** NestJS without nestjs-query = `base`.
+- **refine-nestjs-query-fe** — Base + React 19 + Vite + Refine.dev 5 + `@refinedev/nestjs-query` + shadcn/ui + Tailwind 4 + Firebase Auth + Zod v4 + Bun. FE-only. **Use this when the frontend uses Refine.dev with the nestjs-query GraphQL client.** React without Refine = `base`.
+
+### Umbrella profiles
+
+An umbrella profile declares `"composedFrom": ["profile-a", "profile-b"]` in its `variables.json`. When the user selects an umbrella, the scaffold script expands the composition in order — children first (so their files and CLAUDE.md overlays land first), umbrella last (so its extras, like `/openapi-sync`, append on top). The manifest records both the selected `profile` (what the user picked) and the resolved `profiles` array (what actually got scaffolded).
+
+Today the only umbrella is `angular-dotnet`. Users on a Refine + NestJS fullstack project can stack `nestjs-query-be` + `refine-nestjs-query-fe` manually by scaffolding each profile into the same target directory — the script's skip-if-exists semantics make that safe.
 
 ## Scaffold Source
 
@@ -30,10 +40,11 @@ Templates live in `.claude/scaffold/` relative to wherever this skill is install
 │   ├── settings/                  # settings.json fragment
 │   └── anti-patterns.md           # Anti-patterns starter
 └── profiles/<profile>/            # Profile-specific overlay
-    ├── variables.json             # Detect strategies for placeholder values
+    ├── variables.json             # Detect strategies for placeholder values;
+    │                              # may also declare `composedFrom: [...]` for umbrellas
     ├── claude-section.md          # Profile overlay appended to CLAUDE.md
-    ├── agents/backend/            # BE agents (if profile has a backend)
-    ├── agents/frontend/           # FE agents (if profile has a frontend)
+    ├── agents/backend/            # BE agents (BE-only or umbrella profiles)
+    ├── agents/frontend/           # FE agents (FE-only or umbrella profiles)
     ├── agents/domain/             # Stack-specific cross-cutting agents
     ├── scans/be-scans/            # Backend scan playbooks
     ├── scans/fe-scans/            # Frontend scan playbooks
@@ -41,6 +52,8 @@ Templates live in `.claude/scaffold/` relative to wherever this skill is install
     ├── commands/                  # Profile-specific slash commands
     └── anti-patterns-profile.md   # Stack-specific anti-patterns
 ```
+
+Side-specific profiles (`angular-fe`, `dotnet-be`, `nestjs-query-be`, `refine-nestjs-query-fe`) contain only the directories that belong to their side. Umbrella profiles (`angular-dotnet`) contain only the cross-cutting additions (shared commands, e2e/openapi-sync agents); all side-specific content lives in the composed children.
 
 ## Procedure
 
@@ -74,12 +87,16 @@ Run these checks silently:
 - `Glob("**/bun.lock")` / `Glob("**/bun.lockb")` — detect Bun
 
 **Profile selection logic:**
-- `@angular/core` AND `.csproj`/`.sln` → recommend **angular-dotnet**
+- `@angular/core` AND `.csproj`/`.sln` → recommend **angular-dotnet** (umbrella composing `angular-fe` + `dotnet-be`)
+- `@angular/core` without `.csproj`/`.sln` → recommend **angular-fe**
+- `.csproj`/`.sln` without `@angular/core` → recommend **dotnet-be**
 - `@nestjs/core` AND `@ptc-org/nestjs-query-graphql` → recommend **nestjs-query-be**
 - `react` + `vite` + `@refinedev/core` + `@refinedev/nestjs-query` → recommend **refine-nestjs-query-fe**
 - Otherwise → recommend **base**
 
 Cross-check against Phase 0 facts. If README/CLAUDE.md explicitly names a framework not detected in package.json (e.g., monorepo with nested apps), use that as a tiebreaker.
+
+**Umbrella vs. stack decision:** When Angular + .NET are both detected, default to the `angular-dotnet` umbrella — it bundles both sides plus the `/openapi-sync` command. A user may override with `angular-fe` or `dotnet-be` alone if they only want to scaffold one side (e.g., the other side lives in a separate repo).
 
 **Ask the user these 4 questions (all at once), presenting your recommendation:**
 
@@ -90,6 +107,8 @@ Cross-check against Phase 0 facts. If README/CLAUDE.md explicitly names a framew
 
 3. **Scope** — `SCOPE=fe|be|fullstack`. Default:
    - `angular-dotnet` profile → `fullstack`
+   - `angular-fe` profile → `fe`
+   - `dotnet-be` profile → `be`
    - `nestjs-query-be` profile → `be`
    - `refine-nestjs-query-fe` profile → `fe`
    - `base` profile → ask (typically `fullstack` unless repo clearly lacks one side)
@@ -105,6 +124,8 @@ Load `profiles/<profile>/variables.json` from the chosen profile's scaffold dire
 ```bash
 find ~/.claude/plugins -name "variables.json" -path "*<profile>*" | head -1
 ```
+
+**If the manifest declares `composedFrom`** (umbrella profile): load each composed profile's `variables.json` as well and merge the `variables[]` and `context_hints[]` arrays. Children first, umbrella last — later entries override earlier ones on the same `key`. This matches how the scaffold script resolves and applies manifests.
 
 Parse the manifest (see `docs/variables-schema.md` for the full schema). For each variable:
 

@@ -3,6 +3,9 @@
   "scaffoldedAt": "<NORMALIZED_TIMESTAMP>",
   "updatedAt": null,
   "profile": "refine-nestjs-query-fe",
+  "profiles": [
+    "refine-nestjs-query-fe"
+  ],
   "scope": "fe",
   "placeholders": {
     "E2E_CMD": "bun run test:e2e",
@@ -86,7 +89,7 @@
       "source": "base/templates/GUIDELINES.template.md"
     },
     "CLAUDE.md": {
-      "hash": "sha256:1ccd663044e225219122e2a3d5a8a39b15d27a3162b160f7818e33627d7371d6",
+      "hash": "sha256:bb159de99198d713eff57a95fceb1e8eec56c9ff4a75b888e6949658f19ccd26",
       "category": "templates",
       "source": "base/claude"
     },

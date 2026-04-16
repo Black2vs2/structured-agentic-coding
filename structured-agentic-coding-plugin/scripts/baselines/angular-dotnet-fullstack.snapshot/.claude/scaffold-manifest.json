@@ -3,6 +3,11 @@
   "scaffoldedAt": "<NORMALIZED_TIMESTAMP>",
   "updatedAt": null,
   "profile": "angular-dotnet",
+  "profiles": [
+    "angular-fe",
+    "dotnet-be",
+    "angular-dotnet"
+  ],
   "scope": "fullstack",
   "placeholders": {
     "BE_API_PROJECT": "backend/src/App.Api",
@@ -90,7 +95,7 @@
       "source": "base/templates/GUIDELINES.template.md"
     },
     "CLAUDE.md": {
-      "hash": "sha256:d90a75cdf02faba48dd75662637d443a59346f4a4eb201ad5cbdb2af46325f49",
+      "hash": "sha256:b931e8ba761f839be85d177afb291f0448279826a171bb62e9b38de82999a797",
       "category": "templates",
       "source": "base/claude"
     },
@@ -105,234 +110,234 @@
       "source": "base/settings"
     },
     ".claude/anti-patterns.md": {
-      "hash": "sha256:9e03b5f04b1c08ef639e237d0e866654901ca28bee5a4f659c230087a80553fd",
+      "hash": "sha256:a88ee0a82be9a6dbf1a77954a022408c95810b515c53b9c8114a65416a94cd38",
       "category": "config",
       "source": "base/anti-patterns.md"
-    },
-    "backend/.claude/agents/testad-code-reviewer.md": {
-      "hash": "sha256:dc2f99c1880cd7ea6b74a6649e57fc3b6c78151abe4c09879d0ca29fc909d199",
-      "category": "agents-profile",
-      "source": "profiles/angular-dotnet/agents/backend/code-reviewer.md"
-    },
-    "backend/.claude/agents/testad-coverage-checker.md": {
-      "hash": "sha256:895f001654bd66ad417bb36ba0627c96e657ed0f011514c5ea1db9d357df8871",
-      "category": "agents-profile",
-      "source": "profiles/angular-dotnet/agents/backend/coverage-checker.md"
-    },
-    "backend/.claude/agents/testad-feature-developer.md": {
-      "hash": "sha256:142c5c577c0f1eaf052724294a663443e609103ad6829421fb81cb76995ed6fd",
-      "category": "agents-profile",
-      "source": "profiles/angular-dotnet/agents/backend/feature-developer.md"
-    },
-    "backend/.claude/agents/testad-fixer.md": {
-      "hash": "sha256:0150f28243e31091ce4e2198bcc1a60624813691665e013463f540ee3aedbca3",
-      "category": "agents-profile",
-      "source": "profiles/angular-dotnet/agents/backend/fixer.md"
     },
     "frontend/.claude/agents/testad-code-reviewer.md": {
       "hash": "sha256:7b31be0d4b276aaeb7c98ca0f0ae3f9fcc31d4e2f3f8aa5fc4d78e06515a40f7",
       "category": "agents-profile",
-      "source": "profiles/angular-dotnet/agents/frontend/code-reviewer.md"
+      "source": "profiles/angular-fe/agents/frontend/code-reviewer.md"
     },
     "frontend/.claude/agents/testad-feature-developer.md": {
       "hash": "sha256:49dc118a4de2827e982e9c44e594b7fbfa147a6f698bfd7f91d842c97d462fe8",
       "category": "agents-profile",
-      "source": "profiles/angular-dotnet/agents/frontend/feature-developer.md"
+      "source": "profiles/angular-fe/agents/frontend/feature-developer.md"
     },
     "frontend/.claude/agents/testad-fixer.md": {
       "hash": "sha256:84882ebaafc48e507a4aa39217c36dc88d92cd77da1c184a315a908256bfdf16",
       "category": "agents-profile",
-      "source": "profiles/angular-dotnet/agents/frontend/fixer.md"
+      "source": "profiles/angular-fe/agents/frontend/fixer.md"
     },
     "frontend/.claude/agents/testad-quality-test-writer.md": {
       "hash": "sha256:33ae8ef523942eacd92f473a13b7d31afd2744efd1401ad4360c5f8bf7d5a24e",
       "category": "agents-profile",
-      "source": "profiles/angular-dotnet/agents/frontend/quality-test-writer.md"
+      "source": "profiles/angular-fe/agents/frontend/quality-test-writer.md"
+    },
+    ".claude/agents/domain/testad-frontend-test-generator.md": {
+      "hash": "sha256:a6307f0f5924639b807aa9032b729f3adbf8446715c755dd792791c07f1b6756",
+      "category": "agents-profile",
+      "source": "profiles/angular-fe/agents/domain/frontend-test-generator.md"
+    },
+    "frontend/.claude/agents/fe-scans/accessibility.md": {
+      "hash": "sha256:feb57e965957a393cf558d29712dc7b58c34cbd90a92588b4177bbe5f9348bd6",
+      "category": "rules-scans",
+      "source": "profiles/angular-fe/scans/fe-scans/accessibility.md"
+    },
+    "frontend/.claude/agents/fe-scans/api.md": {
+      "hash": "sha256:3521c4c3831d022023b66cbdf7dfb956ce0df24db901990b2192ce43425bf543",
+      "category": "rules-scans",
+      "source": "profiles/angular-fe/scans/fe-scans/api.md"
+    },
+    "frontend/.claude/agents/fe-scans/component-structure.md": {
+      "hash": "sha256:26b9fcb648714a2eef590895650d2cc6e203d689b85e79f2f315332f75fb287b",
+      "category": "rules-scans",
+      "source": "profiles/angular-fe/scans/fe-scans/component-structure.md"
+    },
+    "frontend/.claude/agents/fe-scans/documentation.md": {
+      "hash": "sha256:30c27294023fc8743fdb1a560d868490936c02d0a6b3646fea19f81a29fdf326",
+      "category": "rules-scans",
+      "source": "profiles/angular-fe/scans/fe-scans/documentation.md"
+    },
+    "frontend/.claude/agents/fe-scans/form-layout.md": {
+      "hash": "sha256:41ca1ebc801f93920378389d7ea73bec8d252a202d85792b7694442a1a7601a2",
+      "category": "rules-scans",
+      "source": "profiles/angular-fe/scans/fe-scans/form-layout.md"
+    },
+    "frontend/.claude/agents/fe-scans/forms.md": {
+      "hash": "sha256:df837cb95ecb1d38a29f1a4df92e6bf8f87c70e93b611c95e52c9b5dec6673d0",
+      "category": "rules-scans",
+      "source": "profiles/angular-fe/scans/fe-scans/forms.md"
+    },
+    "frontend/.claude/agents/fe-scans/hygiene.md": {
+      "hash": "sha256:1c1e23fc018ce3c86a25989ae10471c645bf31efe81ed5ef05cf07e9754f0c29",
+      "category": "rules-scans",
+      "source": "profiles/angular-fe/scans/fe-scans/hygiene.md"
+    },
+    "frontend/.claude/agents/fe-scans/i18n.md": {
+      "hash": "sha256:0ecbf3eac308a10268270094bdffa15d948eefe194fcc92894fb6c3424cad256",
+      "category": "rules-scans",
+      "source": "profiles/angular-fe/scans/fe-scans/i18n.md"
+    },
+    "frontend/.claude/agents/fe-scans/interactive-patterns.md": {
+      "hash": "sha256:f996c7276baa74ea1adddeaceae3f0dadf1c7b4a3ea11250f84016c8c39c1c95",
+      "category": "rules-scans",
+      "source": "profiles/angular-fe/scans/fe-scans/interactive-patterns.md"
+    },
+    "frontend/.claude/agents/fe-scans/layout.md": {
+      "hash": "sha256:363f9b22f01286fcc736d33d0a1331d800cf3a392a3c85ffb1631b2e93d5e2ca",
+      "category": "rules-scans",
+      "source": "profiles/angular-fe/scans/fe-scans/layout.md"
+    },
+    "frontend/.claude/agents/fe-scans/library-structure.md": {
+      "hash": "sha256:6133d53a7246632be49458bc6f59b29015c0eb7b2c22dd4e66a65fcc0a7ccf7e",
+      "category": "rules-scans",
+      "source": "profiles/angular-fe/scans/fe-scans/library-structure.md"
+    },
+    "frontend/.claude/agents/fe-scans/performance.md": {
+      "hash": "sha256:ec2884909fe958161313dc40cb716c780477334d423b0c892b5a1bc5a8379383",
+      "category": "rules-scans",
+      "source": "profiles/angular-fe/scans/fe-scans/performance.md"
+    },
+    "frontend/.claude/agents/fe-scans/routing.md": {
+      "hash": "sha256:34a478ce60351d0d992fafcbfa0d152b2e65661a9417de080325072713c7e4d3",
+      "category": "rules-scans",
+      "source": "profiles/angular-fe/scans/fe-scans/routing.md"
+    },
+    "frontend/.claude/agents/fe-scans/security.md": {
+      "hash": "sha256:a062012ce40aa95bff7ca07e82f98a9510b7c1d23eab467bd38db2e03c2b0065",
+      "category": "rules-scans",
+      "source": "profiles/angular-fe/scans/fe-scans/security.md"
+    },
+    "frontend/.claude/agents/fe-scans/signals.md": {
+      "hash": "sha256:b90db8725c70b9449e30209c9ca97e446cb7a2bb48834c226974783f29a75502",
+      "category": "rules-scans",
+      "source": "profiles/angular-fe/scans/fe-scans/signals.md"
+    },
+    "frontend/.claude/agents/fe-scans/state-management.md": {
+      "hash": "sha256:7446c7c05d5c4d159aee8a3abd194ed35eecfdf2df541719062032cd15fe9d69",
+      "category": "rules-scans",
+      "source": "profiles/angular-fe/scans/fe-scans/state-management.md"
+    },
+    "frontend/.claude/agents/fe-scans/styling.md": {
+      "hash": "sha256:7ced82b71a4205ec1e534f79b4d3d118ed5f2dd7e36b96662d87402f12ee156f",
+      "category": "rules-scans",
+      "source": "profiles/angular-fe/scans/fe-scans/styling.md"
+    },
+    "frontend/.claude/agents/fe-scans/ui-patterns.md": {
+      "hash": "sha256:f74a4b6cbf790b1134e39bdbf7ae53eb6a71343f605f46a67c7eb48945494109",
+      "category": "rules-scans",
+      "source": "profiles/angular-fe/scans/fe-scans/ui-patterns.md"
+    },
+    "frontend/.claude/agents/fe-scans/visual-consistency.md": {
+      "hash": "sha256:5f3527d886845e58f2ddc4bdca42f7e54882bef579eca4b10e6a0715644928e4",
+      "category": "rules-scans",
+      "source": "profiles/angular-fe/scans/fe-scans/visual-consistency.md"
+    },
+    ".claude/rules/fe-rules.json": {
+      "hash": "sha256:fa0d4043ef52396e4ca47a3ba49b26c1ecfeaf192bc9bb7e1c157e6f85b0456f",
+      "category": "rules-scans",
+      "source": "profiles/angular-fe/rules/fe-rules.json"
+    },
+    "backend/.claude/agents/testad-code-reviewer.md": {
+      "hash": "sha256:dc2f99c1880cd7ea6b74a6649e57fc3b6c78151abe4c09879d0ca29fc909d199",
+      "category": "agents-profile",
+      "source": "profiles/dotnet-be/agents/backend/code-reviewer.md"
+    },
+    "backend/.claude/agents/testad-coverage-checker.md": {
+      "hash": "sha256:895f001654bd66ad417bb36ba0627c96e657ed0f011514c5ea1db9d357df8871",
+      "category": "agents-profile",
+      "source": "profiles/dotnet-be/agents/backend/coverage-checker.md"
+    },
+    "backend/.claude/agents/testad-feature-developer.md": {
+      "hash": "sha256:142c5c577c0f1eaf052724294a663443e609103ad6829421fb81cb76995ed6fd",
+      "category": "agents-profile",
+      "source": "profiles/dotnet-be/agents/backend/feature-developer.md"
+    },
+    "backend/.claude/agents/testad-fixer.md": {
+      "hash": "sha256:0150f28243e31091ce4e2198bcc1a60624813691665e013463f540ee3aedbca3",
+      "category": "agents-profile",
+      "source": "profiles/dotnet-be/agents/backend/fixer.md"
     },
     ".claude/agents/domain/testad-backend-test-generator.md": {
       "hash": "sha256:05f8b944fa09d10347daa049ea46d3d320dbb222173c7b21ad5fa983fd708b5f",
       "category": "agents-profile",
-      "source": "profiles/angular-dotnet/agents/domain/backend-test-generator.md"
+      "source": "profiles/dotnet-be/agents/domain/backend-test-generator.md"
+    },
+    "backend/.claude/agents/be-scans/api-controllers.md": {
+      "hash": "sha256:b3ea026e85faa818f3454077d74eb13c0977a3b8f6529fc7ea4f9bc2e0f6127f",
+      "category": "rules-scans",
+      "source": "profiles/dotnet-be/scans/be-scans/api-controllers.md"
+    },
+    "backend/.claude/agents/be-scans/architecture.md": {
+      "hash": "sha256:1f53b4c6e3d7bbe713d6b6c54b60906644f281e59618355e30cf10dfe08358a9",
+      "category": "rules-scans",
+      "source": "profiles/dotnet-be/scans/be-scans/architecture.md"
+    },
+    "backend/.claude/agents/be-scans/background-services.md": {
+      "hash": "sha256:a952b33f90536c3419f99426a3f589e602b585aa477b54c74c92ca4135a1c2df",
+      "category": "rules-scans",
+      "source": "profiles/dotnet-be/scans/be-scans/background-services.md"
+    },
+    "backend/.claude/agents/be-scans/cqrs.md": {
+      "hash": "sha256:be002101921ba87a031a98772f3f5a5742b93fdf6b929cfd946acb6587f6c374",
+      "category": "rules-scans",
+      "source": "profiles/dotnet-be/scans/be-scans/cqrs.md"
+    },
+    "backend/.claude/agents/be-scans/documentation.md": {
+      "hash": "sha256:db4e4bf37ccf9a5ab885b0b4c0fe5b781ee4142c34be1fa281e607d8422aabaf",
+      "category": "rules-scans",
+      "source": "profiles/dotnet-be/scans/be-scans/documentation.md"
+    },
+    "backend/.claude/agents/be-scans/ef-core.md": {
+      "hash": "sha256:0813d24d6bba192fb6f3237578651e61c1a35ba4e8da959c2c5b5d6389c47029",
+      "category": "rules-scans",
+      "source": "profiles/dotnet-be/scans/be-scans/ef-core.md"
+    },
+    "backend/.claude/agents/be-scans/entity-design.md": {
+      "hash": "sha256:d695a5e8804419d9a8bad0eb7e5e69acd392bc1d9698046e2fb31e02b0e89fa0",
+      "category": "rules-scans",
+      "source": "profiles/dotnet-be/scans/be-scans/entity-design.md"
+    },
+    "backend/.claude/agents/be-scans/hygiene.md": {
+      "hash": "sha256:5bfcfa6fa18ebfb4e983deb08d67779c0b27d6357c49608577aba436f13ffd2b",
+      "category": "rules-scans",
+      "source": "profiles/dotnet-be/scans/be-scans/hygiene.md"
+    },
+    "backend/.claude/agents/be-scans/performance.md": {
+      "hash": "sha256:904a57bfa060c97f086a9e8f28d81b61759515005ea40ae9e2bd16ac76b33a63",
+      "category": "rules-scans",
+      "source": "profiles/dotnet-be/scans/be-scans/performance.md"
+    },
+    "backend/.claude/agents/be-scans/security.md": {
+      "hash": "sha256:e7af9680cfe78b1d90b32be08e7c66229987b4b50744a3520a7332ad6d8d44af",
+      "category": "rules-scans",
+      "source": "profiles/dotnet-be/scans/be-scans/security.md"
+    },
+    "backend/.claude/agents/be-scans/state-machines.md": {
+      "hash": "sha256:d99310dcda0cfccd04606b55b2070317730da4dc571ea122dd5a9118b1554c67",
+      "category": "rules-scans",
+      "source": "profiles/dotnet-be/scans/be-scans/state-machines.md"
+    },
+    "backend/.claude/agents/be-scans/validation.md": {
+      "hash": "sha256:87ad6c518cdda7c5f72cd22e3e86f75c120de83ba2269da9e37ad1fcd870fa6f",
+      "category": "rules-scans",
+      "source": "profiles/dotnet-be/scans/be-scans/validation.md"
+    },
+    ".claude/rules/be-rules.json": {
+      "hash": "sha256:71d1122beb82b86b5050ac2d735a51664fd0838947f229ff4e888a56cd868b7a",
+      "category": "rules-scans",
+      "source": "profiles/dotnet-be/rules/be-rules.json"
     },
     ".claude/agents/domain/testad-e2e-agent.md": {
       "hash": "sha256:db530acce8b6b6cb340987e3ba7ba9334083d79a9d1e018929cfd3edd71b9912",
       "category": "agents-profile",
       "source": "profiles/angular-dotnet/agents/domain/e2e-agent.md"
     },
-    ".claude/agents/domain/testad-frontend-test-generator.md": {
-      "hash": "sha256:a6307f0f5924639b807aa9032b729f3adbf8446715c755dd792791c07f1b6756",
-      "category": "agents-profile",
-      "source": "profiles/angular-dotnet/agents/domain/frontend-test-generator.md"
-    },
     ".claude/agents/domain/testad-openapi-sync.md": {
       "hash": "sha256:3b660a8d6c69da2faed4211bf004040aadfb43fc3f7748db3934e923676725eb",
       "category": "agents-profile",
       "source": "profiles/angular-dotnet/agents/domain/openapi-sync.md"
-    },
-    "backend/.claude/agents/be-scans/api-controllers.md": {
-      "hash": "sha256:b3ea026e85faa818f3454077d74eb13c0977a3b8f6529fc7ea4f9bc2e0f6127f",
-      "category": "rules-scans",
-      "source": "profiles/angular-dotnet/scans/be-scans/api-controllers.md"
-    },
-    "backend/.claude/agents/be-scans/architecture.md": {
-      "hash": "sha256:1f53b4c6e3d7bbe713d6b6c54b60906644f281e59618355e30cf10dfe08358a9",
-      "category": "rules-scans",
-      "source": "profiles/angular-dotnet/scans/be-scans/architecture.md"
-    },
-    "backend/.claude/agents/be-scans/background-services.md": {
-      "hash": "sha256:a952b33f90536c3419f99426a3f589e602b585aa477b54c74c92ca4135a1c2df",
-      "category": "rules-scans",
-      "source": "profiles/angular-dotnet/scans/be-scans/background-services.md"
-    },
-    "backend/.claude/agents/be-scans/cqrs.md": {
-      "hash": "sha256:be002101921ba87a031a98772f3f5a5742b93fdf6b929cfd946acb6587f6c374",
-      "category": "rules-scans",
-      "source": "profiles/angular-dotnet/scans/be-scans/cqrs.md"
-    },
-    "backend/.claude/agents/be-scans/documentation.md": {
-      "hash": "sha256:db4e4bf37ccf9a5ab885b0b4c0fe5b781ee4142c34be1fa281e607d8422aabaf",
-      "category": "rules-scans",
-      "source": "profiles/angular-dotnet/scans/be-scans/documentation.md"
-    },
-    "backend/.claude/agents/be-scans/ef-core.md": {
-      "hash": "sha256:0813d24d6bba192fb6f3237578651e61c1a35ba4e8da959c2c5b5d6389c47029",
-      "category": "rules-scans",
-      "source": "profiles/angular-dotnet/scans/be-scans/ef-core.md"
-    },
-    "backend/.claude/agents/be-scans/entity-design.md": {
-      "hash": "sha256:d695a5e8804419d9a8bad0eb7e5e69acd392bc1d9698046e2fb31e02b0e89fa0",
-      "category": "rules-scans",
-      "source": "profiles/angular-dotnet/scans/be-scans/entity-design.md"
-    },
-    "backend/.claude/agents/be-scans/hygiene.md": {
-      "hash": "sha256:5bfcfa6fa18ebfb4e983deb08d67779c0b27d6357c49608577aba436f13ffd2b",
-      "category": "rules-scans",
-      "source": "profiles/angular-dotnet/scans/be-scans/hygiene.md"
-    },
-    "backend/.claude/agents/be-scans/performance.md": {
-      "hash": "sha256:904a57bfa060c97f086a9e8f28d81b61759515005ea40ae9e2bd16ac76b33a63",
-      "category": "rules-scans",
-      "source": "profiles/angular-dotnet/scans/be-scans/performance.md"
-    },
-    "backend/.claude/agents/be-scans/security.md": {
-      "hash": "sha256:e7af9680cfe78b1d90b32be08e7c66229987b4b50744a3520a7332ad6d8d44af",
-      "category": "rules-scans",
-      "source": "profiles/angular-dotnet/scans/be-scans/security.md"
-    },
-    "backend/.claude/agents/be-scans/state-machines.md": {
-      "hash": "sha256:d99310dcda0cfccd04606b55b2070317730da4dc571ea122dd5a9118b1554c67",
-      "category": "rules-scans",
-      "source": "profiles/angular-dotnet/scans/be-scans/state-machines.md"
-    },
-    "backend/.claude/agents/be-scans/validation.md": {
-      "hash": "sha256:87ad6c518cdda7c5f72cd22e3e86f75c120de83ba2269da9e37ad1fcd870fa6f",
-      "category": "rules-scans",
-      "source": "profiles/angular-dotnet/scans/be-scans/validation.md"
-    },
-    "frontend/.claude/agents/fe-scans/accessibility.md": {
-      "hash": "sha256:feb57e965957a393cf558d29712dc7b58c34cbd90a92588b4177bbe5f9348bd6",
-      "category": "rules-scans",
-      "source": "profiles/angular-dotnet/scans/fe-scans/accessibility.md"
-    },
-    "frontend/.claude/agents/fe-scans/api.md": {
-      "hash": "sha256:3521c4c3831d022023b66cbdf7dfb956ce0df24db901990b2192ce43425bf543",
-      "category": "rules-scans",
-      "source": "profiles/angular-dotnet/scans/fe-scans/api.md"
-    },
-    "frontend/.claude/agents/fe-scans/component-structure.md": {
-      "hash": "sha256:26b9fcb648714a2eef590895650d2cc6e203d689b85e79f2f315332f75fb287b",
-      "category": "rules-scans",
-      "source": "profiles/angular-dotnet/scans/fe-scans/component-structure.md"
-    },
-    "frontend/.claude/agents/fe-scans/documentation.md": {
-      "hash": "sha256:30c27294023fc8743fdb1a560d868490936c02d0a6b3646fea19f81a29fdf326",
-      "category": "rules-scans",
-      "source": "profiles/angular-dotnet/scans/fe-scans/documentation.md"
-    },
-    "frontend/.claude/agents/fe-scans/form-layout.md": {
-      "hash": "sha256:41ca1ebc801f93920378389d7ea73bec8d252a202d85792b7694442a1a7601a2",
-      "category": "rules-scans",
-      "source": "profiles/angular-dotnet/scans/fe-scans/form-layout.md"
-    },
-    "frontend/.claude/agents/fe-scans/forms.md": {
-      "hash": "sha256:df837cb95ecb1d38a29f1a4df92e6bf8f87c70e93b611c95e52c9b5dec6673d0",
-      "category": "rules-scans",
-      "source": "profiles/angular-dotnet/scans/fe-scans/forms.md"
-    },
-    "frontend/.claude/agents/fe-scans/hygiene.md": {
-      "hash": "sha256:1c1e23fc018ce3c86a25989ae10471c645bf31efe81ed5ef05cf07e9754f0c29",
-      "category": "rules-scans",
-      "source": "profiles/angular-dotnet/scans/fe-scans/hygiene.md"
-    },
-    "frontend/.claude/agents/fe-scans/i18n.md": {
-      "hash": "sha256:0ecbf3eac308a10268270094bdffa15d948eefe194fcc92894fb6c3424cad256",
-      "category": "rules-scans",
-      "source": "profiles/angular-dotnet/scans/fe-scans/i18n.md"
-    },
-    "frontend/.claude/agents/fe-scans/interactive-patterns.md": {
-      "hash": "sha256:f996c7276baa74ea1adddeaceae3f0dadf1c7b4a3ea11250f84016c8c39c1c95",
-      "category": "rules-scans",
-      "source": "profiles/angular-dotnet/scans/fe-scans/interactive-patterns.md"
-    },
-    "frontend/.claude/agents/fe-scans/layout.md": {
-      "hash": "sha256:363f9b22f01286fcc736d33d0a1331d800cf3a392a3c85ffb1631b2e93d5e2ca",
-      "category": "rules-scans",
-      "source": "profiles/angular-dotnet/scans/fe-scans/layout.md"
-    },
-    "frontend/.claude/agents/fe-scans/library-structure.md": {
-      "hash": "sha256:6133d53a7246632be49458bc6f59b29015c0eb7b2c22dd4e66a65fcc0a7ccf7e",
-      "category": "rules-scans",
-      "source": "profiles/angular-dotnet/scans/fe-scans/library-structure.md"
-    },
-    "frontend/.claude/agents/fe-scans/performance.md": {
-      "hash": "sha256:ec2884909fe958161313dc40cb716c780477334d423b0c892b5a1bc5a8379383",
-      "category": "rules-scans",
-      "source": "profiles/angular-dotnet/scans/fe-scans/performance.md"
-    },
-    "frontend/.claude/agents/fe-scans/routing.md": {
-      "hash": "sha256:34a478ce60351d0d992fafcbfa0d152b2e65661a9417de080325072713c7e4d3",
-      "category": "rules-scans",
-      "source": "profiles/angular-dotnet/scans/fe-scans/routing.md"
-    },
-    "frontend/.claude/agents/fe-scans/security.md": {
-      "hash": "sha256:a062012ce40aa95bff7ca07e82f98a9510b7c1d23eab467bd38db2e03c2b0065",
-      "category": "rules-scans",
-      "source": "profiles/angular-dotnet/scans/fe-scans/security.md"
-    },
-    "frontend/.claude/agents/fe-scans/signals.md": {
-      "hash": "sha256:b90db8725c70b9449e30209c9ca97e446cb7a2bb48834c226974783f29a75502",
-      "category": "rules-scans",
-      "source": "profiles/angular-dotnet/scans/fe-scans/signals.md"
-    },
-    "frontend/.claude/agents/fe-scans/state-management.md": {
-      "hash": "sha256:7446c7c05d5c4d159aee8a3abd194ed35eecfdf2df541719062032cd15fe9d69",
-      "category": "rules-scans",
-      "source": "profiles/angular-dotnet/scans/fe-scans/state-management.md"
-    },
-    "frontend/.claude/agents/fe-scans/styling.md": {
-      "hash": "sha256:7ced82b71a4205ec1e534f79b4d3d118ed5f2dd7e36b96662d87402f12ee156f",
-      "category": "rules-scans",
-      "source": "profiles/angular-dotnet/scans/fe-scans/styling.md"
-    },
-    "frontend/.claude/agents/fe-scans/ui-patterns.md": {
-      "hash": "sha256:f74a4b6cbf790b1134e39bdbf7ae53eb6a71343f605f46a67c7eb48945494109",
-      "category": "rules-scans",
-      "source": "profiles/angular-dotnet/scans/fe-scans/ui-patterns.md"
-    },
-    "frontend/.claude/agents/fe-scans/visual-consistency.md": {
-      "hash": "sha256:5f3527d886845e58f2ddc4bdca42f7e54882bef579eca4b10e6a0715644928e4",
-      "category": "rules-scans",
-      "source": "profiles/angular-dotnet/scans/fe-scans/visual-consistency.md"
-    },
-    ".claude/rules/be-rules.json": {
-      "hash": "sha256:71d1122beb82b86b5050ac2d735a51664fd0838947f229ff4e888a56cd868b7a",
-      "category": "rules-scans",
-      "source": "profiles/angular-dotnet/rules/be-rules.json"
-    },
-    ".claude/rules/fe-rules.json": {
-      "hash": "sha256:fa0d4043ef52396e4ca47a3ba49b26c1ecfeaf192bc9bb7e1c157e6f85b0456f",
-      "category": "rules-scans",
-      "source": "profiles/angular-dotnet/rules/fe-rules.json"
     },
     ".claude/commands/openapi-sync.md": {
       "hash": "sha256:b57990af4d8c7317322483c746d83ed9e6a88ed9338a7ee729481f54f7337063",

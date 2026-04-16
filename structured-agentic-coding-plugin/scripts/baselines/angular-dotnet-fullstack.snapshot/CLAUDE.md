@@ -91,13 +91,43 @@ Commands:
 - Lint: `cd frontend && npx nx lint`
 - E2E tests: `cd frontend && npx playwright test`
 <!--
-Profile CLAUDE.md overlay for angular-dotnet. Appended to CLAUDE.md after
-the base fragments so profile-specific commands (database, migrations,
-openapi-sync) don't bleed into the general _be-section template.
+Profile CLAUDE.md overlay for angular-fe. Appended to CLAUDE.md after the
+base fragments so Angular-specific commands don't bleed into the general
+_fe-section template.
+-->
+
+### Angular / Nx specifics
+
+- Dev server: `cd frontend && npx nx serve app`
+- Build: `cd frontend && npm run build`
+- Lint: `cd frontend && npx nx lint`
+- Format: `cd frontend && npx prettier --write .`
+- End-to-end tests: `cd frontend && npx playwright test`
+
+<!--
+Profile CLAUDE.md overlay for dotnet-be. Appended to CLAUDE.md after the
+base fragments so .NET-specific commands don't bleed into the general
+_be-section template.
 -->
 
 ### .NET / EF Core specifics
 
-- Database (local Postgres): `docker compose -f docker/docker-compose.yml up -d`
+- Build: `dotnet build backend/App.sln`
+- Run: `dotnet run --project backend/src/App.Api`
+- Test: `dotnet test backend/App.sln`
+- Format: `dotnet csharpier backend/`
+- Database (local): `docker compose -f docker/docker-compose.yml up -d`
 - EF Core migration: `dotnet ef migrations add Mig --project backend/src/App.Migrations --startup-project backend/src/App.Api`
-- OpenAPI → frontend client sync: `/openapi-sync` (available only when scaffolded fullstack)
+
+<!--
+Umbrella CLAUDE.md overlay for the angular-dotnet fullstack profile. Appended
+to CLAUDE.md after the angular-fe and dotnet-be overlays. Contains only
+cross-layer commands and conventions that span both sides.
+-->
+
+### Fullstack coordination (Angular + .NET)
+
+- OpenAPI → frontend client sync: `/openapi-sync`
+  Regenerates the TypeScript API client from the live backend spec. Requires both FE and BE to be scaffolded.
+- End-to-end tests exercise both sides: `cd frontend && npx playwright test`
+

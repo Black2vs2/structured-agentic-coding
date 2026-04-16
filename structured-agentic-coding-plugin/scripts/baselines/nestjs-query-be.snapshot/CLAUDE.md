@@ -104,3 +104,4 @@ Global guards (registered as `APP_GUARD`): `UserAuthGuard` → `RolesGuard` → 
 
 - Job queue: pg-boss (not BullMQ). Handlers must be idempotent.
 - Firebase emulator (local auth testing): `bun run firebase:emulator:start`
+

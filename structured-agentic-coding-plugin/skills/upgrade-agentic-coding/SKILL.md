@@ -22,7 +22,7 @@ Upgrade a previously scaffolded project to the current plugin version. Compares 
 cat .claude/scaffold-manifest.json
 ```
 
-Extract `version`, `profile`, `scope`, and `placeholders` from the manifest. Find the plugin's current version:
+Extract `version`, `profile`, `profiles` (array, if present — new in 4.4.0 for umbrella/composed scaffolds), `scope`, and `placeholders` from the manifest. If `profiles` is missing in a legacy manifest, `upgrade.sh` synthesizes it from `profile` + that profile's `composedFrom`. Find the plugin's current version:
 
 ```bash
 PLUGIN_ROOT=$(find ~/.claude/plugins -name "plugin.json" -path "*/structured-agentic-coding*" -exec dirname {} \; 2>/dev/null | sort -V | tail -1)
@@ -41,8 +41,10 @@ Before showing the upgrade status, re-run profile detection (the same logic used
 
 1. **Context pass**: re-read README.md, CLAUDE.md, docs/*.md — extract declared facts
 2. **Systematic scan**: Glob `**/package.json`, `**/*.csproj`, `**/bun.lock`, etc.
-3. **Recommend profile** using the 4-profile selection logic:
-   - Angular + .NET → `angular-dotnet`
+3. **Recommend profile** using the profile selection logic:
+   - Angular + .NET → `angular-dotnet` (umbrella composing `angular-fe` + `dotnet-be`)
+   - Angular only → `angular-fe`
+   - .NET only → `dotnet-be`
    - NestJS + nestjs-query → `nestjs-query-be`
    - React + Vite + Refine + nestjs-query → `refine-nestjs-query-fe`
    - Otherwise → `base`

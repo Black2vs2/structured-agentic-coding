@@ -1,11 +1,11 @@
 <!--
-Profile CLAUDE.md overlay for angular-dotnet. Appended to CLAUDE.md after
-the base fragments so profile-specific commands (database, migrations,
-openapi-sync) don't bleed into the general _be-section template.
+Umbrella CLAUDE.md overlay for the angular-dotnet fullstack profile. Appended
+to CLAUDE.md after the angular-fe and dotnet-be overlays. Contains only
+cross-layer commands and conventions that span both sides.
 -->
 
-### .NET / EF Core specifics
+### Fullstack coordination (Angular + .NET)
 
-- Database (local Postgres): `__DB_START__`
-- EF Core migration: `__MIGRATION__`
-- OpenAPI → frontend client sync: `/openapi-sync` (available only when scaffolded fullstack)
+- OpenAPI → frontend client sync: `/openapi-sync`
+  Regenerates the TypeScript API client from the live backend spec. Requires both FE and BE to be scaffolded.
+- End-to-end tests exercise both sides: `__E2E_CMD__`

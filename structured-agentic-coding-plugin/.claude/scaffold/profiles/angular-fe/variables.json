@@ -1,0 +1,85 @@
+{
+  "profile": "angular-fe",
+  "scope": "fe",
+  "context_hints": [
+    {
+      "file": "nx.json",
+      "grep": ".",
+      "implies": { "NX_MONOREPO": "true" }
+    },
+    {
+      "file": "README.md",
+      "grep": "(?i)nx monorepo|nx workspace",
+      "implies": { "NX_MONOREPO": "true" }
+    }
+  ],
+  "variables": [
+    {
+      "key": "FE_DIR",
+      "label": "Frontend directory",
+      "scope": "fe",
+      "required": true,
+      "default": "frontend",
+      "detect": [
+        { "type": "glob-first-path", "pattern": "frontend/package.json" },
+        { "type": "glob-first-path", "pattern": "apps/*/package.json" }
+      ]
+    },
+    {
+      "key": "FE_SERVE",
+      "label": "Frontend dev server command",
+      "scope": "fe",
+      "detect": [
+        { "type": "package-json-script", "script": "serve" },
+        { "type": "package-json-script", "script": "start" },
+        { "type": "package-json-script", "script": "dev" },
+        { "type": "static", "value": "npx nx serve" }
+      ]
+    },
+    {
+      "key": "FE_BUILD",
+      "label": "Frontend build command",
+      "scope": "fe",
+      "detect": [
+        { "type": "package-json-script", "script": "build" },
+        { "type": "static", "value": "npm run build" }
+      ]
+    },
+    {
+      "key": "FE_TEST",
+      "label": "Frontend test command",
+      "scope": "fe",
+      "detect": [
+        { "type": "package-json-script", "script": "test" },
+        { "type": "static", "value": "npm run test" }
+      ]
+    },
+    {
+      "key": "FE_FORMAT",
+      "label": "Frontend format command",
+      "scope": "fe",
+      "detect": [
+        { "type": "package-json-script", "script": "format" },
+        { "type": "static", "value": "npx prettier --write ." }
+      ]
+    },
+    {
+      "key": "FE_LINT",
+      "label": "Frontend lint command",
+      "scope": "fe",
+      "detect": [
+        { "type": "package-json-script", "script": "lint" },
+        { "type": "static", "value": "npx nx lint" }
+      ]
+    },
+    {
+      "key": "E2E_CMD",
+      "label": "End-to-end test command",
+      "scope": "fe",
+      "detect": [
+        { "type": "glob-present", "pattern": "**/playwright.config.*", "value_when_true": "npx playwright test" },
+        { "type": "glob-present", "pattern": "**/cypress.config.*", "value_when_true": "npx cypress run" }
+      ]
+    }
+  ]
+}

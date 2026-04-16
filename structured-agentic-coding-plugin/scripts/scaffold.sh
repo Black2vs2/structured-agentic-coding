@@ -81,7 +81,31 @@ load_profile_variables() {
     if [[ -z "${PLACEHOLDERS[$key]:-}" ]]; then
       PLACEHOLDERS["$key"]="$default"
     fi
-  done < <(jq -r '.variables[]? | select(.default != null) | [.key, .default] | @tsv' "$manifest" 2>/dev/null)
+  done < <(jq -r '.variables[]? | select(.default != null) | [.key, .default] | @tsv' "$manifest" 2>/dev/null | tr -d '\r')
+}
+
+# --- Helper: resolve composed profiles ---
+# An umbrella profile declares `composedFrom: [...]` in its variables.json.
+# Expand into an ordered list: composed children first (so their files land before
+# the umbrella's), umbrella last (so its overlays append after). A single-profile
+# selection resolves to a list of one.
+#
+# Prints the resolved profile list, one per line, to stdout.
+resolve_profile_list() {
+  local profile="$1"
+  local manifest="$SCAFFOLD_DIR/profiles/$profile/variables.json"
+  if [[ -f "$manifest" ]]; then
+    local composed
+    # tr -d '\r' strips CRs that jq may emit on Windows/git-bash — without this the
+    # profile names carry \r and subsequent `[[ -d ... ]]` checks silently fail.
+    composed=$(jq -r '.composedFrom[]? // empty' "$manifest" 2>/dev/null | tr -d '\r' || true)
+    if [[ -n "$composed" ]]; then
+      printf '%s\n' $composed
+      printf '%s\n' "$profile"
+      return
+    fi
+  fi
+  printf '%s\n' "$profile"
 }
 
 # --- Helper: render a fragmented template per SCOPE ---
@@ -144,9 +168,15 @@ render_fragmented_template() {
   fi
 }
 
-# Populate defaults from profile manifest (if present).
+# Resolve composed profile list (umbrella profiles expand; single profiles pass through).
+mapfile -t PROFILE_LIST < <(resolve_profile_list "$PROFILE")
+
+# Populate defaults from every profile's manifest, in order.
 # CLI args take precedence — this only fills in missing keys.
-load_profile_variables "$PROFILE"
+for _p in "${PROFILE_LIST[@]}"; do
+  load_profile_variables "$_p"
+done
+unset _p
 
 # Resolve script directory and plugin version
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
@@ -232,10 +262,26 @@ for f in "$SCAFFOLD_DIR/base/templates/"*; do
 done
 
 # Root files — CLAUDE.md, AGENTS.md, settings.json assembled from fragments per SCOPE
-# CLAUDE.md supports an optional profile overlay (profiles/<profile>/claude-section.md)
-# appended after the base fragments so profile-specific commands live with the profile.
-PROFILE_CLAUDE_OVERLAY="$SCAFFOLD_DIR/profiles/$PROFILE/claude-section.md"
-[[ -f "$PROFILE_CLAUDE_OVERLAY" ]] || PROFILE_CLAUDE_OVERLAY=""
+# CLAUDE.md supports profile overlays (profiles/<profile>/claude-section.md) appended
+# after the base fragments. With composed profiles, every profile's overlay is
+# concatenated in resolution order (children first, umbrella last).
+PROFILE_CLAUDE_OVERLAY=""
+_overlay_tmp=""
+for _p in "${PROFILE_LIST[@]}"; do
+  _overlay="$SCAFFOLD_DIR/profiles/$_p/claude-section.md"
+  [[ -f "$_overlay" ]] || continue
+  if [[ -z "$_overlay_tmp" ]]; then
+    _overlay_tmp=$(mktemp)
+  fi
+  cat "$_overlay" >> "$_overlay_tmp"
+  echo "" >> "$_overlay_tmp"
+done
+unset _p _overlay
+if [[ -n "$_overlay_tmp" ]]; then
+  PROFILE_CLAUDE_OVERLAY="$_overlay_tmp"
+  # Clean up the temp overlay on exit (alongside the existing manifest-entries trap)
+  trap 'rm -f "$MANIFEST_ENTRIES" "$_overlay_tmp"' EXIT
+fi
 
 render_fragmented_template "$SCAFFOLD_DIR/base/claude" "$TARGET_DIR/CLAUDE.md" \
   "base/claude" "templates" "$PROFILE_CLAUDE_OVERLAY"
@@ -252,11 +298,15 @@ mkdir -p "$TARGET_DIR/docs/masterplans/executed" "$TARGET_DIR/docs/reports"
 # Add .code-graph/ to .gitignore
 echo ".code-graph/" >> "$TARGET_DIR/.gitignore"
 
-# --- Phase 4b: Scaffold profile files (generic for any profile with a scaffold dir) ---
-PROFILE_SCAFFOLD_DIR="$SCAFFOLD_DIR/profiles/$PROFILE"
-if [[ -d "$PROFILE_SCAFFOLD_DIR" ]]; then
+# --- Phase 4b: Scaffold profile files (loops over every profile in PROFILE_LIST) ---
+# For composed profiles, each entry in PROFILE_LIST contributes its own files.
+# source_rel in the manifest records the actual profile each file came from.
+for _profile in "${PROFILE_LIST[@]}"; do
+  PROFILE_SCAFFOLD_DIR="$SCAFFOLD_DIR/profiles/$_profile"
+  [[ -d "$PROFILE_SCAFFOLD_DIR" ]] || continue
+
   echo ""
-  echo "=== Scaffolding $PROFILE profile ==="
+  echo "=== Scaffolding $_profile profile ==="
 
   # Backend agents (prefixed) — BE scope only
   if scope_includes_be && [[ -d "$PROFILE_SCAFFOLD_DIR/agents/backend" ]]; then
@@ -264,7 +314,7 @@ if [[ -d "$PROFILE_SCAFFOLD_DIR" ]]; then
       [[ -f "$f" ]] || continue
       name=$(basename "$f")
       copy_and_replace "$f" "$TARGET_DIR/${BE_DIR}/.claude/agents/${PREFIX}-${name}" \
-        "profiles/${PROFILE}/agents/backend/${name}" "agents-profile"
+        "profiles/${_profile}/agents/backend/${name}" "agents-profile"
     done
   fi
 
@@ -274,7 +324,7 @@ if [[ -d "$PROFILE_SCAFFOLD_DIR" ]]; then
       [[ -f "$f" ]] || continue
       name=$(basename "$f")
       copy_and_replace "$f" "$TARGET_DIR/${FE_DIR}/.claude/agents/${PREFIX}-${name}" \
-        "profiles/${PROFILE}/agents/frontend/${name}" "agents-profile"
+        "profiles/${_profile}/agents/frontend/${name}" "agents-profile"
     done
   fi
 
@@ -284,7 +334,7 @@ if [[ -d "$PROFILE_SCAFFOLD_DIR" ]]; then
       [[ -f "$f" ]] || continue
       name=$(basename "$f")
       copy_and_replace "$f" "$TARGET_DIR/.claude/agents/domain/${PREFIX}-${name}" \
-        "profiles/${PROFILE}/agents/domain/${name}" "agents-profile"
+        "profiles/${_profile}/agents/domain/${name}" "agents-profile"
     done
   fi
 
@@ -295,7 +345,7 @@ if [[ -d "$PROFILE_SCAFFOLD_DIR" ]]; then
       [[ -f "$f" ]] || continue
       name=$(basename "$f")
       copy_and_replace "$f" "$TARGET_DIR/${BE_DIR}/.claude/agents/be-scans/${name}" \
-        "profiles/${PROFILE}/scans/be-scans/${name}" "rules-scans"
+        "profiles/${_profile}/scans/be-scans/${name}" "rules-scans"
     done
   fi
 
@@ -306,7 +356,7 @@ if [[ -d "$PROFILE_SCAFFOLD_DIR" ]]; then
       [[ -f "$f" ]] || continue
       name=$(basename "$f")
       copy_and_replace "$f" "$TARGET_DIR/${FE_DIR}/.claude/agents/fe-scans/${name}" \
-        "profiles/${PROFILE}/scans/fe-scans/${name}" "rules-scans"
+        "profiles/${_profile}/scans/fe-scans/${name}" "rules-scans"
     done
   fi
 
@@ -318,7 +368,7 @@ if [[ -d "$PROFILE_SCAFFOLD_DIR" ]]; then
       if [[ "$name" == be-*.json ]] && ! scope_includes_be; then continue; fi
       if [[ "$name" == fe-*.json ]] && ! scope_includes_fe; then continue; fi
       copy_and_replace "$f" "$TARGET_DIR/.claude/rules/${name}" \
-        "profiles/${PROFILE}/rules/${name}" "rules-scans"
+        "profiles/${_profile}/rules/${name}" "rules-scans"
     done
   fi
 
@@ -332,7 +382,7 @@ if [[ -d "$PROFILE_SCAFFOLD_DIR" ]]; then
       _escaped=$(printf '%s' "$_value" | sed 's/[&/\]/\\&/g')
       sed -i "s|${_token}|${_escaped}|g" "$TARGET_DIR/.claude/anti-patterns.md"
     done
-    echo "APPEND: .claude/anti-patterns.md (profile anti-patterns)"
+    echo "APPEND: .claude/anti-patterns.md ($_profile anti-patterns)"
   fi
 
   # Profile-specific commands (if any)
@@ -345,10 +395,11 @@ if [[ -d "$PROFILE_SCAFFOLD_DIR" ]]; then
         continue
       fi
       copy_and_replace "$f" "$TARGET_DIR/.claude/commands/${name}" \
-        "profiles/${PROFILE}/commands/${name}" "commands"
+        "profiles/${_profile}/commands/${name}" "commands"
     done
   fi
-fi
+done
+unset _profile
 
 # --- Generate scaffold manifest ---
 generate_manifest() {
@@ -419,12 +470,21 @@ generate_manifest() {
     placeholders_json+=$(printf '\n    "%s": "%s"' "$key" "$val")
   done
 
+  # Build profiles array JSON ["a","b",...] from resolved PROFILE_LIST
+  local profiles_json=""
+  local pfirst=true
+  for _p in "${PROFILE_LIST[@]}"; do
+    if [[ "$pfirst" == "true" ]]; then pfirst=false; else profiles_json+=", "; fi
+    profiles_json+="\"$(_json_str "$_p")\""
+  done
+
   cat > "$manifest" <<MANIFEST_EOF
 {
   "version": "${PLUGIN_VERSION}",
   "scaffoldedAt": "${timestamp}",
   "updatedAt": null,
   "profile": "${PROFILE}",
+  "profiles": [${profiles_json}],
   "scope": "${SCOPE}",
   "placeholders": {${placeholders_json}
   },

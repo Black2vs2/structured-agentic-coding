@@ -3,6 +3,9 @@
   "scaffoldedAt": "<NORMALIZED_TIMESTAMP>",
   "updatedAt": null,
   "profile": "base",
+  "profiles": [
+    "base"
+  ],
   "scope": "fullstack",
   "placeholders": {
     "BE_BUILD": "echo build",
