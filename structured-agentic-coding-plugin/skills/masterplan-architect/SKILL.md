@@ -32,7 +32,7 @@ Glob: .claude/agents/codebase/*-masterplan-architect.md
 
 - **Found** → Read the full agent definition file. It contains the project-specific procedure, placeholders already resolved for this project's tech stack, directories, and build commands. Follow its procedure exactly for the remaining steps.
 - **Not found** → The project may not be scaffolded yet. Tell the user:
-  > "No masterplan-architect agent found. Run `/structured-agentic-coding:init` to scaffold your project first, or I can design the masterplan using a generic approach."
+  > "No masterplan-architect agent found. Run `/structured-agentic-coding:scaffold` to scaffold your project first, or I can design the masterplan using a generic approach."
   >
   > If user wants to proceed without scaffolding, use the fallback procedure below.
 

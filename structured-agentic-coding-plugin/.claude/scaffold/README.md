@@ -52,16 +52,16 @@ cp .claude/commands/structured-agentic-coding.md ~/.claude/commands/
 cp -r .claude/scaffold ~/.claude/scaffold
 ```
 
-Then run `/structured-agentic-coding:init` in any project.
+Then run `/structured-agentic-coding:scaffold` in any project.
 
 ### Option B: Per-project
 
-Copy `.claude/commands/structured-agentic-coding.md` and `.claude/scaffold/` into the target project, then run `/structured-agentic-coding:init`.
+Copy `.claude/commands/structured-agentic-coding.md` and `.claude/scaffold/` into the target project, then run `/structured-agentic-coding:scaffold`.
 
 ## Usage
 
 ```
-/structured-agentic-coding:init
+/structured-agentic-coding:scaffold
 ```
 
 The skill will:

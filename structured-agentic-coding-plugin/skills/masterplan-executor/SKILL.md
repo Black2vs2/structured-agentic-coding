@@ -30,7 +30,7 @@ Glob: .claude/agents/codebase/*-masterplan-executor.md
 ```
 
 - **Found** → Read the full file. It contains the project-specific procedure with resolved build commands, directory paths, agent discovery patterns, and rules injection logic. Ignore its `model:` / `effort:` frontmatter (legacy subagent config — does not apply when running inline).
-- **Not found** → Tell user: "No masterplan-executor procedure found. Run `/structured-agentic-coding:init` to scaffold your project first." Stop.
+- **Not found** → Tell user: "No masterplan-executor procedure found. Run `/structured-agentic-coding:scaffold` to scaffold your project first." Stop.
 
 ### Step 3: Execute Inline
 

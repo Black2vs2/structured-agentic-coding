@@ -11,7 +11,7 @@ Upgrade a previously scaffolded project to the current plugin version. Compares 
 
 ## Prerequisites
 
-- Project must have `.claude/scaffold-manifest.json` (created by `/structured-agentic-coding:init`)
+- Project must have `.claude/scaffold-manifest.json` (created by `/structured-agentic-coding:scaffold`)
 - `jq` must be installed (required by the upgrade script for manifest parsing)
 
 ## Procedure
@@ -31,13 +31,13 @@ cat "$PLUGIN_ROOT/.claude-plugin/plugin.json"
 ```
 
 If the manifest does not exist:
-> "No scaffold manifest found. Run `/structured-agentic-coding:init` to scaffold your project first."
+> "No scaffold manifest found. Run `/structured-agentic-coding:scaffold` to scaffold your project first."
 
 Stop.
 
 ### Step 1b — Profile migration opportunity detection (always active)
 
-Before showing the upgrade status, re-run profile detection (the same logic used by `/structured-agentic-coding:init` Phase 1):
+Before showing the upgrade status, re-run profile detection (the same logic used by `/structured-agentic-coding:scaffold` Phase 1):
 
 1. **Context pass**: re-read README.md, CLAUDE.md, docs/*.md — extract declared facts
 2. **Systematic scan**: Glob `**/package.json`, `**/*.csproj`, `**/bun.lock`, etc.
