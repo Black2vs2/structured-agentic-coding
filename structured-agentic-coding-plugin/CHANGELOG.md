@@ -6,6 +6,17 @@ Versioning: [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+## [4.4.0] - 2026-04-16
+
+### Added
+- **New profile `angular-fe`** — Angular + Nx + Playwright frontend rules, agents, and scan playbooks split out of the former monolithic `angular-dotnet` profile. Selectable standalone for split-repo setups (Angular frontend + non-.NET backend).
+- **New profile `dotnet-be`** — .NET Clean Architecture + CQRS + EF Core + PostgreSQL backend rules, agents, and scan playbooks split out of the former `angular-dotnet` profile. Selectable standalone for split-repo setups (.NET backend + non-Angular frontend).
+- **Composed (umbrella) profiles** — A profile may declare `"composedFrom": [...]` in its `variables.json`. The scaffold script expands the umbrella into its children (in declared order, umbrella last) and scaffolds every profile's files in the same run. Variables, context_hints, and anti-patterns from each profile are merged. The manifest records both the selected `profile` (scalar) and the resolved `profiles` array (new field).
+
+### Changed
+- **`angular-dotnet` is now an umbrella profile** composing `angular-fe` + `dotnet-be`. It carries only the fullstack-only content (`/openapi-sync` command, the openapi-sync and e2e-agent domain agents, cross-layer anti-patterns). Existing scaffolds continue to upgrade transparently — `upgrade.sh` reads the new `profiles` array when present and falls back to resolving `composedFrom` on legacy single-profile manifests.
+- **Scaffold skill (`SKILL.md`)** lists 5 profiles. Profile selection still recommends `angular-dotnet` for projects with both Angular and .NET, but users may now override to scaffold either side alone.
+
 ## [4.3.2] - 2026-04-16
 
 ### Added
@@ -16,15 +27,6 @@ Versioning: [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   - Validation: BE-VAL-006 (@Type + @ValidateNested on nested arrays)
 - **nestjs-query-be: 15 new scan playbook sections** matching the new rules in auth, nestjs-query, typeorm, and validation playbooks
 - **nestjs-query-be: 3 new anti-patterns** — entity without migration, ambiguous Number scalar on FilterableField, missing CreateDTOClass/UpdateDTOClass on CRUDResolver
-
-### Added
-- **New profile `angular-fe`** — Angular + Nx + Playwright frontend rules, agents, and scan playbooks split out of the former monolithic `angular-dotnet` profile. Selectable standalone for split-repo setups (Angular frontend + non-.NET backend).
-- **New profile `dotnet-be`** — .NET Clean Architecture + CQRS + EF Core + PostgreSQL backend rules, agents, and scan playbooks split out of the former `angular-dotnet` profile. Selectable standalone for split-repo setups (.NET backend + non-Angular frontend).
-- **Composed (umbrella) profiles** — A profile may declare `"composedFrom": [...]` in its `variables.json`. The scaffold script expands the umbrella into its children (in declared order, umbrella last) and scaffolds every profile's files in the same run. Variables, context_hints, and anti-patterns from each profile are merged. The manifest records both the selected `profile` (scalar) and the resolved `profiles` array (new field).
-
-### Changed
-- **`angular-dotnet` is now an umbrella profile** composing `angular-fe` + `dotnet-be`. It carries only the fullstack-only content (`/openapi-sync` command, the openapi-sync and e2e-agent domain agents, cross-layer anti-patterns). Existing scaffolds continue to upgrade transparently — `upgrade.sh` reads the new `profiles` array when present and falls back to resolving `composedFrom` on legacy single-profile manifests.
-- **Scaffold skill (`SKILL.md`)** lists 5 profiles. Profile selection still recommends `angular-dotnet` for projects with both Angular and .NET, but users may now override to scaffold either side alone.
 
 ## [4.3.1] - 2026-04-15
 
