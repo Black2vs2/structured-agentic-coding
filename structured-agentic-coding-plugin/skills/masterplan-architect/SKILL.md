@@ -1,6 +1,6 @@
 ---
 name: masterplan-architect
-description: Design a structured implementation masterplan for a multi-step feature through interactive Q&A — orient on codebase structure, ask clarifying questions, produce phased plan with tasks, dependencies, and acceptance criteria.
+description: Design a structured implementation masterplan for a multi-step feature through interactive Q&A — orient on codebase structure, ask clarifying questions, produce phased plan with tasks, dependencies, and acceptance criteria. Use when the user says plan, design, architect, break down, scope a feature, brainstorm plan, or asks to plan before implementing.
 ---
 
 # Masterplan Architect

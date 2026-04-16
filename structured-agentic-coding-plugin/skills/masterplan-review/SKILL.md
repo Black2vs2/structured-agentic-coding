@@ -1,6 +1,6 @@
 ---
 name: masterplan-review
-description: Review a completed masterplan against the repository — verify tasks were implemented, key decisions followed, success criteria met, rules not violated. Generates structured audit report with lessons learned.
+description: Review a completed masterplan against the repository — verify tasks were implemented, key decisions followed, success criteria met, rules not violated. Generates structured audit report with lessons learned. Use when the user says review, audit, check, verify masterplan, or asks to validate that a past feature was actually delivered.
 ---
 
 # Masterplan Review

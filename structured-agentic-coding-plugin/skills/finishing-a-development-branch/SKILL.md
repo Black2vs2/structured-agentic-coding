@@ -1,6 +1,6 @@
 ---
 name: finishing-a-development-branch
-description: Wrap up a development branch after implementation is complete — run final verification, format, offer merge / PR / keep / discard options, execute the chosen path cleanly. Pairs with masterplan-executor to produce the final PR.
+description: Wrap up a development branch after implementation is complete — run final verification, format, offer merge / PR / keep / discard options, execute the chosen path cleanly. Pairs with masterplan-executor to produce the final PR. Use when the user says finish, wrap up, close out, ship, ready to merge, open a PR, done with this branch, or time to push.
 ---
 
 # Finishing a Development Branch
@@ -13,7 +13,7 @@ Announce at start: "Running the finishing-a-development-branch skill to close ou
 
 ### Step 1: Verify (Gate)
 
-Invoke the **verification-before-completion** skill. Do NOT proceed past this step without passing evidence:
+Invoke the **`structured-agentic-coding:verification-before-completion`** skill. Do NOT proceed past this step without passing evidence:
 
 1. Run the full project test suite (BE + FE as applicable, from `.claude/` config or scaffolded commands)
 2. Run the build (BE + FE as applicable)
@@ -94,7 +94,7 @@ On confirmed discard:
 ```bash
 git checkout {base}
 git branch -D {branch}
-# If a worktree is in use, also remove via the using-git-worktrees skill.
+# If a worktree is in use, also remove via the `structured-agentic-coding:using-git-worktrees` skill.
 ```
 
 ### Step 6: Report
@@ -103,9 +103,9 @@ Tell the user exactly what happened: commits merged, PR URL, branch preserved, o
 
 ## Integration
 
-- **verification-before-completion** — invoked at Step 1 as the gate
-- **masterplan-executor report** — mined at Step 3 for PR description and test checklist
-- **using-git-worktrees** (when implemented) — called at Step 5 for worktree cleanup
+- **`structured-agentic-coding:verification-before-completion`** — invoked at Step 1 as the gate
+- **`structured-agentic-coding:masterplan-executor`** report — mined at Step 3 for PR description and test checklist
+- **`structured-agentic-coding:using-git-worktrees`** (when implemented) — called at Step 5 for worktree cleanup
 
 ## Safeguards
 

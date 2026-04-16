@@ -1,6 +1,6 @@
 ---
 name: masterplan-executor
-description: Execute a masterplan file — parse phases and tasks, dispatch dev agents per task with rules injection, review incrementally, fix issues with circuit breaker, commit per phase. Resume interrupted masterplans from last unchecked task.
+description: Execute a masterplan file — parse phases and tasks, dispatch dev agents per task with rules injection, review incrementally, fix issues with circuit breaker, commit per phase. Resume interrupted masterplans from last unchecked task. Use when the user says execute, run, implement, resume, start the masterplan, or asks to build the plan.
 ---
 
 # Masterplan Executor

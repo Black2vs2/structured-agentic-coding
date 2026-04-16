@@ -1,6 +1,6 @@
 ---
 name: structured-agentic-coding
-description: Scaffold a complete agent-driven development infrastructure into the current project — agents, rules, scan playbooks, masterplan workflows, and documentation templates.
+description: Scaffold a complete agent-driven development infrastructure into the current project — agents, rules, scan playbooks, masterplan workflows, and documentation templates. Use when the user says scaffold, set up, initialize, bootstrap agentic coding, install the structure, or asks to add the structured-agentic-coding scaffold to a project.
 ---
 
 # Structured Agentic Coding — Project Scaffolding

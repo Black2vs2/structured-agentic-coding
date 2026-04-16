@@ -1,6 +1,6 @@
 ---
 name: verification-before-completion
-description: Enforce evidence-before-completion. Before claiming a task, build, test, or fix is done, run the verifying command, read the actual output, and cite it. Prevents "should work" / "probably passes" failure modes.
+description: Enforce evidence-before-completion. Before claiming a task, build, test, or fix is done, run the verifying command, read the actual output, and cite it. Prevents "should work" / "probably passes" failure modes. Use when about to say done/working/fixed/passing, about to relay an agent's self-report, claiming tests pass, or claiming a bug is resolved.
 ---
 
 # Verification Before Completion
@@ -48,7 +48,7 @@ Trust but verify.
 
 ## Integration with Masterplan
 
-The masterplan-executor's Purpose Validation step (2e) is an instance of this skill: re-read the task's `Accept:` criteria, run the evidence command for each, then mark complete. The phase-verify step (2f) is another instance: build + test are the evidence commands for the phase.
+The `structured-agentic-coding:masterplan-executor` Purpose Validation step (2e) is an instance of this skill: re-read the task's `Accept:` criteria, run the evidence command for each, then mark complete. The phase-verify step (2f) is another instance: build + test are the evidence commands for the phase.
 
 When the executor dispatches a leaf dev agent and the agent reports back, the executor must itself verify — not relay the agent's self-report as completion.
 

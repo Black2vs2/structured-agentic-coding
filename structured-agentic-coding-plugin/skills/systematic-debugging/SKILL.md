@@ -1,6 +1,6 @@
 ---
 name: systematic-debugging
-description: Disciplined four-phase debugging — root cause investigation, pattern analysis, hypothesis testing, then implementation. Prevents symptom-chasing and random-fix churn. Use for any bug beyond a trivial typo.
+description: Disciplined four-phase debugging — root cause investigation, pattern analysis, hypothesis testing, then implementation. Prevents symptom-chasing and random-fix churn. Use for any bug beyond a trivial typo. Use when the user says debug, fix bug, troubleshoot, why is this broken, find root cause, investigate failure, or reports an error / test failure / crash.
 ---
 
 # Systematic Debugging
@@ -58,7 +58,7 @@ Goal: fix root cause, lock in with a test, don't regress.
 
 1. **Write a failing test first** — a regression test that fails because of the bug. If you can't write one, you don't yet understand the bug (return to Phase 1).
 2. **Single change** that makes the test pass.
-3. **Verify via verification-before-completion skill:** run the failing test → green; run the full affected test suite → no new failures.
+3. **Verify via the `structured-agentic-coding:verification-before-completion` skill:** run the failing test → green; run the full affected test suite → no new failures.
 4. **Verify the original reproducer** no longer triggers.
 5. **Commit with a root-cause message**, not a symptom message:
    - Good: `fix(auth): init session cache before first request (was null on cold start)`

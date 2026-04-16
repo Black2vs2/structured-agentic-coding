@@ -1,6 +1,6 @@
 ---
 name: upgrade-agentic-coding
-description: Upgrade an existing structured-agentic-coding scaffold to the latest plugin version — selective category updates with modification detection, plus always-active profile-migration detection.
+description: Upgrade an existing structured-agentic-coding scaffold to the latest plugin version — selective category updates with modification detection, plus always-active profile-migration detection. Use when the user says upgrade, update scaffold, bump plugin version, refresh agentic coding, or asks to pull the latest scaffold changes.
 ---
 
 # Upgrade Agentic Coding
