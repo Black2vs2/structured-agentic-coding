@@ -1,11 +1,24 @@
 ---
 name: masterplan-architect
-description: Design a structured implementation masterplan for a multi-step feature through interactive Q&A — orient on codebase structure, ask clarifying questions, produce phased plan with tasks, dependencies, and acceptance criteria.
+description: Design a structured implementation masterplan for a multi-step feature through interactive Q&A — orient on codebase structure, ask clarifying questions, produce phased plan with tasks, dependencies, and acceptance criteria. Use when the user says plan, design, architect, break down, scope a feature, brainstorm plan, or asks to plan before implementing.
 ---
 
 # Masterplan Architect
 
 Design structured implementation masterplans through interactive conversation. This skill runs in the main conversation context (not as a spawned agent) because the architect flow is interactive.
+
+## Research-Backed Invocation (Optional)
+
+If args include a path to a feature proposal file (typically produced by `structured-agentic-coding:feature-exploration` at `docs/research/{feature}.proposal.md`), treat it as **resolved context**:
+
+- Read the proposal file fully
+- Skip most of the Clarify phase — scope, tradeoffs, and implementation choice are already resolved
+- Ask at most 1–2 clarifying questions, and ONLY on items the proposal explicitly listed under "Open Questions for Human"
+- Proceed to Design with the proposal's Recommended Pick as the architectural baseline
+- In the masterplan's "Key Decisions" section, cite the proposal path and the chosen Option (A/B/C)
+- The companion files (`{feature}.brief.md`, `{feature}.md` research report, `{feature}.patterns.md`) are canonical context — read them as needed, do NOT re-derive their conclusions
+
+If no proposal file is present, proceed with the standard interactive Q&A procedure below.
 
 ## Procedure
 
@@ -19,7 +32,7 @@ Glob: .claude/agents/codebase/*-masterplan-architect.md
 
 - **Found** → Read the full agent definition file. It contains the project-specific procedure, placeholders already resolved for this project's tech stack, directories, and build commands. Follow its procedure exactly for the remaining steps.
 - **Not found** → The project may not be scaffolded yet. Tell the user:
-  > "No masterplan-architect agent found. Run `/structured-agentic-coding` to scaffold your project first, or I can design the masterplan using a generic approach."
+  > "No masterplan-architect agent found. Run `/structured-agentic-coding:scaffold` to scaffold your project first, or I can design the masterplan using a generic approach."
   >
   > If user wants to proceed without scaffolding, use the fallback procedure below.
 

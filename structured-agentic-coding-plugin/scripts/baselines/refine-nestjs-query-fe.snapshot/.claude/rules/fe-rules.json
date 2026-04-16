@@ -1,0 +1,107 @@
+{
+  "agent": "fe-expert-refine-nestjs-query",
+  "version": 1,
+  "categories": [
+    {
+      "name": "Refine Framework",
+      "prefix": "FE-REFINE",
+      "rules": [
+        { "id": "FE-REFINE-001", "name": "Resources registered in <Refine>", "category": "refine", "layer": "app", "check": "Every directory under src/resources/ must have a corresponding entry in App.tsx <Refine resources={[...]}>. Flag orphan resource directories.", "why": "Resources outside the Refine list miss access control, breadcrumbs, i18n, and navigation integration." },
+        { "id": "FE-REFINE-002", "name": "dataProvider is @refinedev/nestjs-query", "category": "refine", "layer": "provider", "check": "Flag App.tsx imports of dataProvider from anywhere other than @refinedev/nestjs-query (or a thin wrapper around it).", "why": "The nestjs-query dataProvider knows how to translate Refine's filter/sort/paging shape to nestjs-query GraphQL operations." },
+        { "id": "FE-REFINE-003", "name": "No direct fetch() for backend", "category": "refine", "layer": "resource,hook,component", "check": "Flag fetch() / axios calls in src/ that target the backend API. Use Refine hooks (useList, useOne, useCreate, useCustom) or extend the dataProvider.", "why": "Direct fetch bypasses auth token injection, cache invalidation, error normalization, and access control." },
+        { "id": "FE-REFINE-004", "name": "authProvider wired to Firebase", "category": "refine", "layer": "provider", "check": "App.tsx authProvider must delegate login/logout/check to the project's Firebase service (src/lib/firebase.ts or src/providers/auth-provider.ts).", "why": "Authoritative auth state must live in one place." },
+        { "id": "FE-REFINE-005", "name": "accessControlProvider set", "category": "refine", "layer": "provider", "check": "App.tsx <Refine> must pass an accessControlProvider. Flag missing provider or provider that returns {can: true} unconditionally.", "why": "Without a real provider, role-based UI gates silently render for all users." }
+      ]
+    },
+    {
+      "name": "GraphQL Operations",
+      "prefix": "FE-GQL",
+      "rules": [
+        { "id": "FE-GQL-001", "name": "Inline gql tags (no .graphql files)", "category": "graphql", "layer": "resource,lib", "check": "Flag standalone .graphql / .gql files in src/. Operations must be inline gql`...` template tags in .ts/.tsx files.", "why": "Project convention; codegen is configured to scan inline gql, not standalone files." },
+        { "id": "FE-GQL-002", "name": "TypedDocumentNode imported from codegen output", "category": "graphql", "layer": "resource,lib", "check": "Query hooks must consume typed operations generated in src/graphql/types.ts. Flag hooks passing raw gql strings without the generated TypedDocumentNode.", "why": "Loses end-to-end type safety and silently accepts schema-breaking queries." },
+        { "id": "FE-GQL-003", "name": "Generated types never hand-edited", "category": "graphql", "layer": "generated", "check": "Flag any git diff modifying src/graphql/types.ts or src/graphql/schema.types.ts without a corresponding code/schema change.", "why": "Files are auto-generated; manual edits are overwritten on next codegen run." },
+        { "id": "FE-GQL-004", "name": "Codegen freshness before commit", "category": "graphql", "layer": "ci,generated", "check": "After any inline gql change in src/, codegen output must be regenerated and committed in the same PR. Flag PRs with gql changes but no src/graphql/*.ts diff.", "why": "Stale generated types drift from operations." },
+        { "id": "FE-GQL-005", "name": "No anonymous operations", "category": "graphql", "layer": "resource,lib", "check": "Every gql tag must have a named operation (query Foo, mutation Bar). Flag gql`query { ... }` without a name.", "why": "Named operations are required for codegen to emit typed hooks and for observability." }
+      ]
+    },
+    {
+      "name": "Forms & Validation",
+      "prefix": "FE-FORM",
+      "rules": [
+        { "id": "FE-FORM-001", "name": "Zod imported from 'zod/v4'", "category": "forms", "layer": "resource,lib", "check": "Flag any import from 'zod' — all imports must be from 'zod/v4'.", "why": "Project uses Zod v4 (separate import path). 'zod' resolves to v3 which breaks the custom error map.", "fix": "import { z } from 'zod/v4';" },
+        { "id": "FE-FORM-002", "name": "zodResolver wires react-hook-form", "category": "forms", "layer": "resource,component", "check": "Forms using react-hook-form must use useForm({ resolver: zodResolver(schema) }) — flag forms without a resolver or with a custom resolver.", "why": "Zod + resolver is the standard contract; custom resolvers bypass the form-validation error map." },
+        { "id": "FE-FORM-003", "name": "Custom form-validation error map used", "category": "forms", "layer": "resource,lib", "check": "Forms must import and apply the error map from src/lib/form-validation.ts (typically via a top-level z.setErrorMap or schema .describe()). Flag schemas that silently fall back to Zod's default English errors.", "why": "User-facing error messages need i18n keys, not Zod defaults." },
+        { "id": "FE-FORM-004", "name": "FormProvider wraps field components", "category": "forms", "layer": "resource,component", "check": "When custom field components use useFormContext(), the parent must wrap children in <FormProvider {...methods}>. Flag useFormContext calls with no FormProvider ancestor.", "why": "Without FormProvider, useFormContext returns undefined and field registration silently fails." }
+      ]
+    },
+    {
+      "name": "UI & Theming",
+      "prefix": "FE-UI",
+      "rules": [
+        { "id": "FE-UI-001", "name": "shadcn components from components/ui/", "category": "ui", "layer": "component,resource", "check": "Composite UI primitives (Button, Input, Dialog, etc.) must import from src/components/ui/. Flag direct Radix imports when a shadcn wrapper exists.", "why": "shadcn wrappers apply project Tailwind classes and CSS variables; bypassing them breaks theme consistency." },
+        { "id": "FE-UI-002", "name": "Tailwind 4 via @tailwindcss/vite", "category": "ui", "layer": "config", "check": "vite.config.ts must import @tailwindcss/vite. Flag legacy postcss-based Tailwind config remnants.", "why": "Tailwind 4 uses the Vite plugin; mixing with legacy PostCSS config produces broken builds." },
+        { "id": "FE-UI-003", "name": "No hardcoded hex colors in components", "category": "ui", "layer": "component,resource", "check": "Flag className attributes containing literal hex like bg-[#xxxxxx], text-[#xxxxxx]; flag style props with hex color values.", "why": "Brand tokens live in CSS variables (src/index.css). Hardcoded hex breaks theme and dark mode.", "fix": "Use bg-primary, text-accent, or var(--primary) references." },
+        { "id": "FE-UI-004", "name": "Emotion secondary to Tailwind+shadcn", "category": "ui", "layer": "component", "check": "Flag widespread use of @emotion/styled as primary styling when shadcn/Tailwind equivalent exists. Allow Emotion only for legitimate cases (animations, complex keyframes) with a justifying comment.", "why": "Two styling systems duplicate scopes and break theme-variable consumption." },
+        { "id": "FE-UI-005", "name": "Icons from lucide-react", "category": "ui", "layer": "component,resource", "check": "Icons must come from lucide-react. Flag imports from @heroicons, react-icons, or inline SVG unless wrapped in a shadcn component.", "why": "Single icon library keeps bundle size and visual style consistent." }
+      ]
+    },
+    {
+      "name": "Auth & Firebase",
+      "prefix": "FE-AUTH",
+      "rules": [
+        { "id": "FE-AUTH-001", "name": "Firebase token injected in data-provider", "category": "auth", "layer": "provider", "check": "src/providers/data-provider.ts (or equivalent) must attach the Firebase ID token to outgoing requests via a fetch interceptor. Flag dataProvider setups missing token attachment.", "why": "Backend requires Firebase ID token; missing it means 401 on every request." },
+        { "id": "FE-AUTH-002", "name": "authProvider returns Firebase user", "category": "auth", "layer": "provider", "check": "authProvider.check / getIdentity must read from Firebase Auth state. Flag hardcoded user objects or localStorage-only auth state.", "why": "Single source of truth for user identity." },
+        { "id": "FE-AUTH-003", "name": "UserStateGuard wraps routed pages", "category": "auth", "layer": "app", "check": "App.tsx must wrap protected routes with the project's user-state guard component (typically <UserStateGuard>). Flag routed pages outside the guard.", "why": "Prevents flash-of-authenticated-content while Firebase rehydrates." },
+        { "id": "FE-AUTH-004", "name": "No direct Firebase Auth calls in pages", "category": "auth", "layer": "resource,page", "check": "Flag signInWithEmailAndPassword / signOut / onAuthStateChanged calls inside src/resources/ or src/pages/. These belong in src/lib/firebase.ts and the authProvider.", "why": "Centralized auth lifecycle prevents race conditions between pages." }
+      ]
+    },
+    {
+      "name": "Internationalization",
+      "prefix": "FE-I18N",
+      "rules": [
+        { "id": "FE-I18N-001", "name": "useTranslation from @refinedev/core", "category": "i18n", "layer": "resource,page,component", "check": "Flag any import of useTranslation from 'react-i18next' — must come from '@refinedev/core'.", "why": "Refine proxies useTranslation through its i18nProvider to translate resource names, actions, and notifications consistently.", "fix": "import { useTranslation } from '@refinedev/core';" },
+        { "id": "FE-I18N-002", "name": "Key prefix convention", "category": "i18n", "layer": "resource,page", "check": "Translation keys used in resource pages must follow pages.<resource>.<section>.<key>. Flag keys that don't match this shape in src/resources/.", "why": "Predictable key layout makes translations searchable and prevents collisions." },
+        { "id": "FE-I18N-003", "name": "No inline English strings", "category": "i18n", "layer": "resource,page,component", "check": "User-visible strings must be wrapped in t(...). Flag JSX text nodes longer than 2 words that aren't inside a t() call.", "why": "Hardcoded strings block translations." },
+        { "id": "FE-I18N-004", "name": "No missing translation keys", "category": "i18n", "layer": "i18n", "check": "Every t('...') key used in code must exist in the i18n source files. Flag unresolved keys that would render as the key string itself.", "why": "Missing keys render raw in the UI." }
+      ]
+    },
+    {
+      "name": "Environment Variables",
+      "prefix": "FE-ENV",
+      "rules": [
+        { "id": "FE-ENV-001", "name": "import.meta.env.VITE_* only", "category": "env", "layer": "all", "check": "Flag any process.env.* reference in src/. Use import.meta.env.VITE_* with types in src/vite-env.d.ts.", "why": "process.env doesn't exist in the Vite browser bundle; use fails at runtime.", "fix": "import.meta.env.VITE_API_URL" },
+        { "id": "FE-ENV-002", "name": "Env types declared in vite-env.d.ts", "category": "env", "layer": "config", "check": "src/vite-env.d.ts must declare interface ImportMetaEnv with every VITE_* var used in the codebase. Flag untyped env access.", "why": "Typed env catches typos at compile time." },
+        { "id": "FE-ENV-003", "name": "No committed .env files", "category": "env", "layer": "ci", "check": "Flag .env, .env.production, .env.local, etc. committed to git. Only .env.example (with empty values) may be committed.", "why": "Env files often contain secrets." }
+      ]
+    },
+    {
+      "name": "Protected Paths",
+      "prefix": "FE-PROT",
+      "rules": [
+        { "id": "FE-PROT-001", "name": "src/graphql/types.ts never hand-edited", "category": "protected", "layer": "generated", "check": "Flag any modification to src/graphql/types.ts not accompanied by gql operation or schema changes + codegen run in the same commit.", "why": "Auto-generated file; hand edits are overwritten on next codegen." },
+        { "id": "FE-PROT-002", "name": "src/graphql/schema.types.ts never hand-edited", "category": "protected", "layer": "generated", "check": "Same as FE-PROT-001 but for schema.types.ts.", "why": "Auto-generated file." },
+        { "id": "FE-PROT-003", "name": "Generated files have codegen header", "category": "protected", "layer": "generated", "check": "src/graphql/*.ts must retain the generator header comment. Flag files where the header has been removed.", "why": "Header signals 'do not edit'; removing it invites edits." },
+        { "id": "FE-PROT-004", "name": "patches/ tied to package.json", "category": "protected", "layer": "config", "check": "Any change under patches/ must be accompanied by a matching package.json patchedDependencies entry (or bun patch workflow). Flag orphan patch files or unused entries.", "why": "Unlinked patches don't apply on fresh install." }
+      ]
+    },
+    {
+      "name": "Bun Package Manager",
+      "prefix": "FE-BUN",
+      "rules": [
+        { "id": "FE-BUN-001", "name": "Only bun.lock committed", "category": "package-manager", "layer": "config,ci", "check": "Flag presence of package-lock.json, yarn.lock, pnpm-lock.yaml. Only bun.lock (or bun.lockb) allowed.", "why": "Mixed lockfiles cause install drift." },
+        { "id": "FE-BUN-002", "name": "CI uses bun commands", "category": "package-manager", "layer": "ci", "check": "Flag npm install / yarn / pnpm install in .github/workflows/*.yml. Use bun install and bun run <script>.", "why": "CI must match dev environment runtime." },
+        { "id": "FE-BUN-003", "name": "Scripts run via bun run", "category": "package-manager", "layer": "docs", "check": "Flag README / CLAUDE.md instructions referencing npm/yarn/pnpm commands for this project. Should read 'bun run ...'.", "why": "Consistent docs prevent developer confusion." }
+      ]
+    },
+    {
+      "name": "Testing",
+      "prefix": "FE-TEST",
+      "rules": [
+        { "id": "FE-TEST-001", "name": ".test.ts/.test.tsx naming", "category": "testing", "layer": "test", "check": "Frontend tests must use Vitest's .test.ts / .test.tsx naming. Flag .spec.ts files in src/ (that's Jest/backend convention).", "why": "Vitest config discovers .test.* by default; .spec.* may be skipped." },
+        { "id": "FE-TEST-002", "name": "React Testing Library patterns", "category": "testing", "layer": "test", "check": "Component tests must query via screen.getByRole / getByLabelText / getByText. Flag tests using .querySelector, container queries, or CSS-class selectors.", "why": "Accessibility-first queries ensure tests verify user-visible behavior." },
+        { "id": "FE-TEST-003", "name": "MSW for GraphQL mocks", "category": "testing", "layer": "test", "check": "GraphQL in tests must be mocked via msw/node handlers. Flag tests that mock the GraphQL client directly (e.g., jest.mock('@refinedev/nestjs-query')).", "why": "MSW mocks at the network layer; client mocks miss retry/cache behavior." },
+        { "id": "FE-TEST-004", "name": "Coverage floor on changed lines", "category": "testing", "layer": "test", "check": "Changed lines should have >= 60% test coverage. Severity info until Vitest harness is installed project-wide.", "why": "Coverage trend protects against untested regressions." }
+      ]
+    }
+  ]
+}

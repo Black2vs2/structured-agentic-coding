@@ -1,0 +1,202 @@
+{
+  "version": "4.3.2",
+  "scaffoldedAt": "<NORMALIZED_TIMESTAMP>",
+  "updatedAt": null,
+  "profile": "refine-nestjs-query-fe",
+  "profiles": [
+    "refine-nestjs-query-fe"
+  ],
+  "scope": "fe",
+  "placeholders": {
+    "E2E_CMD": "bun run test:e2e",
+    "FE_BUILD": "bun run build",
+    "FE_BUILD_STAGE": "bun run build:stage",
+    "FE_DIR": ".",
+    "FE_FORMAT": "bun run format",
+    "FE_LINT": "bun run lint",
+    "FE_LINT_FIX": "bun run lint:fix",
+    "FE_RUNTIME": "bun",
+    "FE_SERVE": "bun run dev",
+    "FE_TEST": "bun run test",
+    "FE_TYPECHECK": "bun run tsc",
+    "GRAPHQL_CODEGEN": "bun run codegen",
+    "GRAPHQL_SCHEMA_SRC": "http://localhost:3000/graphql",
+    "PLUGIN_DIR": "<NORMALIZED_PLUGIN_DIR>",
+    "PREFIX": "testrnq",
+    "PROJECT_DESC": "Test refine-nestjs-query-fe project for smoke testing",
+    "PROJECT_NAME": "Test Refine NestJS Query FE",
+    "SCOPE": "fe"
+  },
+  "files": {
+    ".claude/agents/codebase/testrnq-doc-enforcer.md": {
+      "hash": "sha256:0978b656b5eda7bdf42c1307206c5cdb71ffc68aa3b0c48e8287aafa7bb9fc84",
+      "category": "agents-core",
+      "source": "base/agents/codebase/doc-enforcer.md"
+    },
+    ".claude/agents/codebase/testrnq-masterplan-architect.md": {
+      "hash": "sha256:ec5dca7f1028594d1a50142a3bebd6fb31f360893e85eca35f71f3ec6ecc671a",
+      "category": "agents-core",
+      "source": "base/agents/codebase/masterplan-architect.md"
+    },
+    ".claude/agents/codebase/testrnq-masterplan-executor.md": {
+      "hash": "sha256:3166132692221ccc424436ba99847cd028f300bc20c7adf1f059e49d14403ea4",
+      "category": "agents-core",
+      "source": "base/agents/codebase/masterplan-executor.md"
+    },
+    ".claude/agents/codebase/testrnq-masterplan-reviewer.md": {
+      "hash": "sha256:2ba37ecc3ed9ed3e1a42bf41f925856f6277a9b378fba4d556025f113584f63c",
+      "category": "agents-core",
+      "source": "base/agents/codebase/masterplan-reviewer.md"
+    },
+    ".claude/agents/domain/testrnq-impact-analyst.md": {
+      "hash": "sha256:288e1fa15e00cd028af38866c8f656c00447512f5b1d7e512b0eaa86b34f1a0a",
+      "category": "agents-core",
+      "source": "base/agents/domain/impact-analyst.md"
+    },
+    ".claude/agents/domain/testrnq-research.md": {
+      "hash": "sha256:537b96f4df2d611982812735d36c7bfa1f435e6e0b5ab2d545b62d40f1c1fc4d",
+      "category": "agents-core",
+      "source": "base/agents/domain/research.md"
+    },
+    ".claude/commands/kill.md": {
+      "hash": "sha256:b4fbe2c0395d7bb8b91627fc4f744ded787de5afa9c6dbef7a8d1873f205b5fe",
+      "category": "commands",
+      "source": "base/commands/kill.md"
+    },
+    ".claude/commands/masterplan-review.md": {
+      "hash": "sha256:77d61f8b46f1a123790f2816f53fa17cd5129aae0c45153bdc79a19d08d72081",
+      "category": "commands",
+      "source": "base/commands/masterplan-review.md"
+    },
+    ".claude/commands/masterplan.md": {
+      "hash": "sha256:0201999672193da551317bdc84095c6755d87c212896dbb12375570d57a5c827",
+      "category": "commands",
+      "source": "base/commands/masterplan.md"
+    },
+    ".claude/commands/rebuild-graph.md": {
+      "hash": "sha256:f031b840e8a200b0b8edddca6ec6d1226f5b20b9d6be9df9e9dca6e61f2d228b",
+      "category": "commands",
+      "source": "base/commands/rebuild-graph.md"
+    },
+    ".claude/templates/ARCHITECTURE.template.md": {
+      "hash": "sha256:4b390f60ceafb4a1e08269e68c29c380dc35bfc5ec44f6fb2e0e9c982ba7dba9",
+      "category": "templates",
+      "source": "base/templates/ARCHITECTURE.template.md"
+    },
+    ".claude/templates/GUIDELINES.template.md": {
+      "hash": "sha256:f4c64443c9a9c74651b5c33b1d6df2f8f4bedc374f2d0742730f6dbc9943be10",
+      "category": "templates",
+      "source": "base/templates/GUIDELINES.template.md"
+    },
+    "CLAUDE.md": {
+      "hash": "sha256:bb159de99198d713eff57a95fceb1e8eec56c9ff4a75b888e6949658f19ccd26",
+      "category": "templates",
+      "source": "base/claude"
+    },
+    ".claude/AGENTS.md": {
+      "hash": "sha256:6ff7fd7ecddd1522321527fe264bbc80ae6fbb78ffc86f80c8ddd7ece7479ee5",
+      "category": "templates",
+      "source": "base/agents-md"
+    },
+    ".claude/settings.json": {
+      "hash": "sha256:540e419f443839ee85a45b575ec917a02e5e12296b14eede05435d38ac026115",
+      "category": "config",
+      "source": "base/settings"
+    },
+    ".claude/anti-patterns.md": {
+      "hash": "sha256:2681198dddb762b49e7badaa2f7952832ff65e51c53d2a44a2151acbfb7a2cac",
+      "category": "config",
+      "source": "base/anti-patterns.md"
+    },
+    "./.claude/agents/testrnq-code-reviewer.md": {
+      "hash": "sha256:a6eb55700437a513e482bdc435e65b67ab0cad9258df7fc0fdaa24e9bcc9b31c",
+      "category": "agents-profile",
+      "source": "profiles/refine-nestjs-query-fe/agents/frontend/code-reviewer.md"
+    },
+    "./.claude/agents/testrnq-feature-developer.md": {
+      "hash": "sha256:c1f317664b009edcaddc03a27f333a392ec935ec8556eae0ed9ca2d95467bbf4",
+      "category": "agents-profile",
+      "source": "profiles/refine-nestjs-query-fe/agents/frontend/feature-developer.md"
+    },
+    "./.claude/agents/testrnq-fixer.md": {
+      "hash": "sha256:245631b2b6a4738a6e105c7256f1760c5239dcbe1ea00c3eb321d49942b6239e",
+      "category": "agents-profile",
+      "source": "profiles/refine-nestjs-query-fe/agents/frontend/fixer.md"
+    },
+    ".claude/agents/domain/testrnq-graphql-codegen-sync.md": {
+      "hash": "sha256:71ff5b47dcec79cd732ab7508b576279f7da6321eddf784c60bb5319bea33dc3",
+      "category": "agents-profile",
+      "source": "profiles/refine-nestjs-query-fe/agents/domain/graphql-codegen-sync.md"
+    },
+    ".claude/agents/domain/testrnq-resource-generator.md": {
+      "hash": "sha256:edef4baef5b4efd75401b3fd72b35aff2bfebf80e0aa188e7bc3f3ceac2c15f6",
+      "category": "agents-profile",
+      "source": "profiles/refine-nestjs-query-fe/agents/domain/resource-generator.md"
+    },
+    ".claude/agents/domain/testrnq-test-writer.md": {
+      "hash": "sha256:5f54d4287ba57f74ad0c57263fdc574a8602e0e7693506c9f11958b0f977ed02",
+      "category": "agents-profile",
+      "source": "profiles/refine-nestjs-query-fe/agents/domain/test-writer.md"
+    },
+    "./.claude/agents/fe-scans/auth-firebase.md": {
+      "hash": "sha256:ff9c535aba76fe5ba95a6b14b089341081aac216974d67bb91be984380e2f0e9",
+      "category": "rules-scans",
+      "source": "profiles/refine-nestjs-query-fe/scans/fe-scans/auth-firebase.md"
+    },
+    "./.claude/agents/fe-scans/env-vars.md": {
+      "hash": "sha256:ba394d8bfc4df9b97381cd4129cd77964dab4a3772576d3db70a9afa533e21a7",
+      "category": "rules-scans",
+      "source": "profiles/refine-nestjs-query-fe/scans/fe-scans/env-vars.md"
+    },
+    "./.claude/agents/fe-scans/forms-zod.md": {
+      "hash": "sha256:f2a382660223704cf3d4b39584ed024b63192dc8770ad5f33a9720a72d682db7",
+      "category": "rules-scans",
+      "source": "profiles/refine-nestjs-query-fe/scans/fe-scans/forms-zod.md"
+    },
+    "./.claude/agents/fe-scans/graphql-operations.md": {
+      "hash": "sha256:f5a9a5abb6d38ccfe3e631684e577f89673d926128a15a5ae881162f02969bc4",
+      "category": "rules-scans",
+      "source": "profiles/refine-nestjs-query-fe/scans/fe-scans/graphql-operations.md"
+    },
+    "./.claude/agents/fe-scans/i18n.md": {
+      "hash": "sha256:a691a4d7f2a127211a485a16b3f5431c24cf4a150985ea717478692cbd83cbae",
+      "category": "rules-scans",
+      "source": "profiles/refine-nestjs-query-fe/scans/fe-scans/i18n.md"
+    },
+    "./.claude/agents/fe-scans/package-manager.md": {
+      "hash": "sha256:eb685582c41e1f59dd1cdc37bd128885bc260aa1989a3b049fdcfc5e762fc56c",
+      "category": "rules-scans",
+      "source": "profiles/refine-nestjs-query-fe/scans/fe-scans/package-manager.md"
+    },
+    "./.claude/agents/fe-scans/protected-paths.md": {
+      "hash": "sha256:a646b7afe75d41dd4d6c61a94531a9805028e0678e8e48b3f79775bd0c2caa73",
+      "category": "rules-scans",
+      "source": "profiles/refine-nestjs-query-fe/scans/fe-scans/protected-paths.md"
+    },
+    "./.claude/agents/fe-scans/refine-providers.md": {
+      "hash": "sha256:29deca18b438616f891088db92466dc51f74f837da017ad0cf8207dd8c0d972d",
+      "category": "rules-scans",
+      "source": "profiles/refine-nestjs-query-fe/scans/fe-scans/refine-providers.md"
+    },
+    "./.claude/agents/fe-scans/testing.md": {
+      "hash": "sha256:56d8cc42805d298b20184fdac08430c0c4d2ab0447eb20753c5c347a0bd53758",
+      "category": "rules-scans",
+      "source": "profiles/refine-nestjs-query-fe/scans/fe-scans/testing.md"
+    },
+    "./.claude/agents/fe-scans/ui-theming.md": {
+      "hash": "sha256:31218393ef8523079de0c7a3d0d7cd14ed6fe449bdcf3c89d78e7adccc59a26f",
+      "category": "rules-scans",
+      "source": "profiles/refine-nestjs-query-fe/scans/fe-scans/ui-theming.md"
+    },
+    ".claude/rules/fe-rules.json": {
+      "hash": "sha256:c7244463a5704c1e9efe9214899b1e5b59801705226970a33fe3498e92b23a22",
+      "category": "rules-scans",
+      "source": "profiles/refine-nestjs-query-fe/rules/fe-rules.json"
+    },
+    ".claude/commands/graphql-codegen-sync.md": {
+      "hash": "sha256:1521def60120f4b9b892e66e106e27acc4c0255e65dd17f78d302c60740ce894",
+      "category": "commands",
+      "source": "profiles/refine-nestjs-query-fe/commands/graphql-codegen-sync.md"
+    }
+  }
+}

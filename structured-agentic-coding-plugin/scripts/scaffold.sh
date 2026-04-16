@@ -16,6 +16,22 @@
 
 set -euo pipefail
 
+# --- macOS portability shim ---
+# Homebrew's gnu-sed ships as `gsed` by default, but installs a `sed` symlink
+# under <prefix>/opt/gnu-sed/libexec/gnubin. Prepend that directory if present
+# so the `sed -i "..."` calls below use GNU sed instead of BSD sed.
+# Linux / CI (no such directory) is a no-op.
+for _gnubin in \
+  /usr/local/opt/gnu-sed/libexec/gnubin \
+  /opt/homebrew/opt/gnu-sed/libexec/gnubin \
+; do
+  if [[ -d "$_gnubin" ]]; then
+    export PATH="$_gnubin:$PATH"
+    break
+  fi
+done
+unset _gnubin
+
 SCAFFOLD_DIR="$1"
 TARGET_DIR="$2"
 PROFILE="$3"
@@ -37,6 +53,130 @@ PLACEHOLDERS["PLUGIN_DIR"]="$PLUGIN_DIR"
 PREFIX="${PLACEHOLDERS[PREFIX]:-}"
 FE_DIR="${PLACEHOLDERS[FE_DIR]:-}"
 BE_DIR="${PLACEHOLDERS[BE_DIR]:-}"
+SCOPE="${PLACEHOLDERS[SCOPE]:-fullstack}"
+
+# Validate SCOPE
+case "$SCOPE" in
+  fe|be|fullstack) ;;
+  *) echo "ERROR: SCOPE must be fe|be|fullstack (got '$SCOPE')" >&2; exit 1 ;;
+esac
+
+# Ensure SCOPE is in PLACEHOLDERS so it lands in the manifest (always)
+PLACEHOLDERS["SCOPE"]="$SCOPE"
+
+# --- Scope helpers ---
+scope_includes_be() { [[ "$SCOPE" == "be" || "$SCOPE" == "fullstack" ]]; }
+scope_includes_fe() { [[ "$SCOPE" == "fe" || "$SCOPE" == "fullstack" ]]; }
+
+# --- Helper: load profile variables.json (populates PLACEHOLDERS with defaults) ---
+# No-op for profiles without a manifest (legacy/hardcoded profiles).
+# Only sets a key if it isn't already provided by CLI args.
+load_profile_variables() {
+  local profile="$1"
+  local manifest="$SCAFFOLD_DIR/profiles/$profile/variables.json"
+  [[ -f "$manifest" ]] || return 0
+
+  while IFS=$'\t' read -r key default; do
+    [[ -z "$key" || -z "$default" ]] && continue
+    if [[ -z "${PLACEHOLDERS[$key]:-}" ]]; then
+      PLACEHOLDERS["$key"]="$default"
+    fi
+  done < <(jq -r '.variables[]? | select(.default != null) | [.key, .default] | @tsv' "$manifest" 2>/dev/null | tr -d '\r')
+}
+
+# --- Helper: resolve composed profiles ---
+# An umbrella profile declares `composedFrom: [...]` in its variables.json.
+# Expand into an ordered list: composed children first (so their files land before
+# the umbrella's), umbrella last (so its overlays append after). A single-profile
+# selection resolves to a list of one.
+#
+# Prints the resolved profile list, one per line, to stdout.
+resolve_profile_list() {
+  local profile="$1"
+  local manifest="$SCAFFOLD_DIR/profiles/$profile/variables.json"
+  if [[ -f "$manifest" ]]; then
+    local composed
+    # tr -d '\r' strips CRs that jq may emit on Windows/git-bash — without this the
+    # profile names carry \r and subsequent `[[ -d ... ]]` checks silently fail.
+    composed=$(jq -r '.composedFrom[]? // empty' "$manifest" 2>/dev/null | tr -d '\r' || true)
+    if [[ -n "$composed" ]]; then
+      printf '%s\n' $composed
+      printf '%s\n' "$profile"
+      return
+    fi
+  fi
+  printf '%s\n' "$profile"
+}
+
+# --- Helper: render a fragmented template per SCOPE ---
+# Usage: render_fragmented_template <fragment_dir> <output_file> [<source_rel>] [<category>] [<overlay_file>]
+# Concatenates _core.<ext> + _be-section.<ext> (if BE scope) + _fe-section.<ext> (if FE scope),
+# where <ext> is derived from output_file. If <overlay_file> is provided and non-empty, it's
+# appended after the base fragments — used for profile-specific CLAUDE.md overlays. Then applies
+# placeholder replacement, skip-if-exists behavior, and manifest tracking.
+render_fragmented_template() {
+  local fragment_dir="$1"
+  local output_file="$2"
+  local source_rel="${3:-}"
+  local category="${4:-}"
+  local overlay_file="${5:-}"
+
+  if [[ -f "$output_file" ]]; then
+    echo "SKIP: $output_file (already exists)"
+    SKIPPED=$((SKIPPED + 1))
+    return
+  fi
+
+  local ext="${output_file##*.}"
+  local core="$fragment_dir/_core.$ext"
+  local be="$fragment_dir/_be-section.$ext"
+  local fe="$fragment_dir/_fe-section.$ext"
+
+  if [[ ! -f "$core" ]]; then
+    echo "ERROR: missing required fragment $core" >&2
+    return 1
+  fi
+
+  mkdir -p "$(dirname "$output_file")"
+  cat "$core" > "$output_file"
+  if scope_includes_be && [[ -f "$be" && -s "$be" ]]; then
+    cat "$be" >> "$output_file"
+  fi
+  if scope_includes_fe && [[ -f "$fe" && -s "$fe" ]]; then
+    cat "$fe" >> "$output_file"
+  fi
+  if [[ -n "$overlay_file" && -f "$overlay_file" && -s "$overlay_file" ]]; then
+    cat "$overlay_file" >> "$output_file"
+  fi
+
+  # Replace placeholders (same logic as copy_and_replace)
+  for key in "${!PLACEHOLDERS[@]}"; do
+    local token="__${key}__"
+    local value="${PLACEHOLDERS[$key]}"
+    local escaped_value
+    escaped_value=$(printf '%s' "$value" | sed 's/[&/\]/\\&/g')
+    sed -i "s|${token}|${escaped_value}|g" "$output_file"
+  done
+
+  echo "CREATE: $output_file"
+  CREATED=$((CREATED + 1))
+
+  # Track for manifest (source_rel identifies the fragment directory, not a single file)
+  if [[ -n "$source_rel" && -n "$category" ]]; then
+    local dst_rel="${output_file#$TARGET_DIR/}"
+    printf '%s\t%s\t%s\n' "$dst_rel" "$source_rel" "$category" >> "$MANIFEST_ENTRIES"
+  fi
+}
+
+# Resolve composed profile list (umbrella profiles expand; single profiles pass through).
+mapfile -t PROFILE_LIST < <(resolve_profile_list "$PROFILE")
+
+# Populate defaults from every profile's manifest, in order.
+# CLI args take precedence — this only fills in missing keys.
+for _p in "${PROFILE_LIST[@]}"; do
+  load_profile_variables "$_p"
+done
+unset _p
 
 # Resolve script directory and plugin version
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
@@ -121,15 +261,36 @@ for f in "$SCAFFOLD_DIR/base/templates/"*; do
     "base/templates/${name}" "templates"
 done
 
-# Root files
-copy_and_replace "$SCAFFOLD_DIR/base/CLAUDE.md" "$TARGET_DIR/CLAUDE.md" \
-  "base/CLAUDE.md" "templates"
-copy_and_replace "$SCAFFOLD_DIR/base/AGENTS.md" "$TARGET_DIR/.claude/AGENTS.md" \
-  "base/AGENTS.md" "templates"
+# Root files — CLAUDE.md, AGENTS.md, settings.json assembled from fragments per SCOPE
+# CLAUDE.md supports profile overlays (profiles/<profile>/claude-section.md) appended
+# after the base fragments. With composed profiles, every profile's overlay is
+# concatenated in resolution order (children first, umbrella last).
+PROFILE_CLAUDE_OVERLAY=""
+_overlay_tmp=""
+for _p in "${PROFILE_LIST[@]}"; do
+  _overlay="$SCAFFOLD_DIR/profiles/$_p/claude-section.md"
+  [[ -f "$_overlay" ]] || continue
+  if [[ -z "$_overlay_tmp" ]]; then
+    _overlay_tmp=$(mktemp)
+  fi
+  cat "$_overlay" >> "$_overlay_tmp"
+  echo "" >> "$_overlay_tmp"
+done
+unset _p _overlay
+if [[ -n "$_overlay_tmp" ]]; then
+  PROFILE_CLAUDE_OVERLAY="$_overlay_tmp"
+  # Clean up the temp overlay on exit (alongside the existing manifest-entries trap)
+  trap 'rm -f "$MANIFEST_ENTRIES" "$_overlay_tmp"' EXIT
+fi
+
+render_fragmented_template "$SCAFFOLD_DIR/base/claude" "$TARGET_DIR/CLAUDE.md" \
+  "base/claude" "templates" "$PROFILE_CLAUDE_OVERLAY"
+render_fragmented_template "$SCAFFOLD_DIR/base/agents-md" "$TARGET_DIR/.claude/AGENTS.md" \
+  "base/agents-md" "templates"
+render_fragmented_template "$SCAFFOLD_DIR/base/settings" "$TARGET_DIR/.claude/settings.json" \
+  "base/settings" "config"
 copy_and_replace "$SCAFFOLD_DIR/base/anti-patterns.md" "$TARGET_DIR/.claude/anti-patterns.md" \
   "base/anti-patterns.md" "config"
-copy_and_replace "$SCAFFOLD_DIR/base/settings.json" "$TARGET_DIR/.claude/settings.json" \
-  "base/settings.json" "config"
 
 # Create directories
 mkdir -p "$TARGET_DIR/docs/masterplans/executed" "$TARGET_DIR/docs/reports"
@@ -137,85 +298,108 @@ mkdir -p "$TARGET_DIR/docs/masterplans/executed" "$TARGET_DIR/docs/reports"
 # Add .code-graph/ to .gitignore
 echo ".code-graph/" >> "$TARGET_DIR/.gitignore"
 
-# --- Phase 4b: Scaffold profile files (if angular-dotnet) ---
-if [[ "$PROFILE" == "angular-dotnet" ]]; then
+# --- Phase 4b: Scaffold profile files (loops over every profile in PROFILE_LIST) ---
+# For composed profiles, each entry in PROFILE_LIST contributes its own files.
+# source_rel in the manifest records the actual profile each file came from.
+for _profile in "${PROFILE_LIST[@]}"; do
+  PROFILE_SCAFFOLD_DIR="$SCAFFOLD_DIR/profiles/$_profile"
+  [[ -d "$PROFILE_SCAFFOLD_DIR" ]] || continue
+
   echo ""
-  echo "=== Scaffolding angular-dotnet profile ==="
+  echo "=== Scaffolding $_profile profile ==="
 
-  # Backend agents (prefixed)
-  for f in "$SCAFFOLD_DIR/profiles/angular-dotnet/agents/backend/"*.md; do
-    [[ -f "$f" ]] || continue
-    name=$(basename "$f")
-    copy_and_replace "$f" "$TARGET_DIR/${BE_DIR}/.claude/agents/${PREFIX}-${name}" \
-      "profiles/angular-dotnet/agents/backend/${name}" "agents-profile"
-  done
+  # Backend agents (prefixed) — BE scope only
+  if scope_includes_be && [[ -d "$PROFILE_SCAFFOLD_DIR/agents/backend" ]]; then
+    for f in "$PROFILE_SCAFFOLD_DIR/agents/backend/"*.md; do
+      [[ -f "$f" ]] || continue
+      name=$(basename "$f")
+      copy_and_replace "$f" "$TARGET_DIR/${BE_DIR}/.claude/agents/${PREFIX}-${name}" \
+        "profiles/${_profile}/agents/backend/${name}" "agents-profile"
+    done
+  fi
 
-  # Frontend agents (prefixed)
-  for f in "$SCAFFOLD_DIR/profiles/angular-dotnet/agents/frontend/"*.md; do
-    [[ -f "$f" ]] || continue
-    name=$(basename "$f")
-    copy_and_replace "$f" "$TARGET_DIR/${FE_DIR}/.claude/agents/${PREFIX}-${name}" \
-      "profiles/angular-dotnet/agents/frontend/${name}" "agents-profile"
-  done
+  # Frontend agents (prefixed) — FE scope only
+  if scope_includes_fe && [[ -d "$PROFILE_SCAFFOLD_DIR/agents/frontend" ]]; then
+    for f in "$PROFILE_SCAFFOLD_DIR/agents/frontend/"*.md; do
+      [[ -f "$f" ]] || continue
+      name=$(basename "$f")
+      copy_and_replace "$f" "$TARGET_DIR/${FE_DIR}/.claude/agents/${PREFIX}-${name}" \
+        "profiles/${_profile}/agents/frontend/${name}" "agents-profile"
+    done
+  fi
 
-  # Domain agents (prefixed)
-  for f in "$SCAFFOLD_DIR/profiles/angular-dotnet/agents/domain/"*.md; do
-    [[ -f "$f" ]] || continue
-    name=$(basename "$f")
-    copy_and_replace "$f" "$TARGET_DIR/.claude/agents/domain/${PREFIX}-${name}" \
-      "profiles/angular-dotnet/agents/domain/${name}" "agents-profile"
-  done
+  # Domain agents (prefixed) — always (cross-cutting)
+  if [[ -d "$PROFILE_SCAFFOLD_DIR/agents/domain" ]]; then
+    for f in "$PROFILE_SCAFFOLD_DIR/agents/domain/"*.md; do
+      [[ -f "$f" ]] || continue
+      name=$(basename "$f")
+      copy_and_replace "$f" "$TARGET_DIR/.claude/agents/domain/${PREFIX}-${name}" \
+        "profiles/${_profile}/agents/domain/${name}" "agents-profile"
+    done
+  fi
 
-  # Backend scan playbooks (not prefixed)
-  mkdir -p "$TARGET_DIR/${BE_DIR}/.claude/agents/be-scans"
-  for f in "$SCAFFOLD_DIR/profiles/angular-dotnet/scans/be-scans/"*.md; do
-    [[ -f "$f" ]] || continue
-    name=$(basename "$f")
-    copy_and_replace "$f" "$TARGET_DIR/${BE_DIR}/.claude/agents/be-scans/${name}" \
-      "profiles/angular-dotnet/scans/be-scans/${name}" "rules-scans"
-  done
+  # Backend scan playbooks (not prefixed) — BE scope only
+  if scope_includes_be && [[ -d "$PROFILE_SCAFFOLD_DIR/scans/be-scans" ]]; then
+    mkdir -p "$TARGET_DIR/${BE_DIR}/.claude/agents/be-scans"
+    for f in "$PROFILE_SCAFFOLD_DIR/scans/be-scans/"*.md; do
+      [[ -f "$f" ]] || continue
+      name=$(basename "$f")
+      copy_and_replace "$f" "$TARGET_DIR/${BE_DIR}/.claude/agents/be-scans/${name}" \
+        "profiles/${_profile}/scans/be-scans/${name}" "rules-scans"
+    done
+  fi
 
-  # Frontend scan playbooks (not prefixed)
-  mkdir -p "$TARGET_DIR/${FE_DIR}/.claude/agents/fe-scans"
-  for f in "$SCAFFOLD_DIR/profiles/angular-dotnet/scans/fe-scans/"*.md; do
-    [[ -f "$f" ]] || continue
-    name=$(basename "$f")
-    copy_and_replace "$f" "$TARGET_DIR/${FE_DIR}/.claude/agents/fe-scans/${name}" \
-      "profiles/angular-dotnet/scans/fe-scans/${name}" "rules-scans"
-  done
+  # Frontend scan playbooks (not prefixed) — FE scope only
+  if scope_includes_fe && [[ -d "$PROFILE_SCAFFOLD_DIR/scans/fe-scans" ]]; then
+    mkdir -p "$TARGET_DIR/${FE_DIR}/.claude/agents/fe-scans"
+    for f in "$PROFILE_SCAFFOLD_DIR/scans/fe-scans/"*.md; do
+      [[ -f "$f" ]] || continue
+      name=$(basename "$f")
+      copy_and_replace "$f" "$TARGET_DIR/${FE_DIR}/.claude/agents/fe-scans/${name}" \
+        "profiles/${_profile}/scans/fe-scans/${name}" "rules-scans"
+    done
+  fi
 
-  # Rules
-  for f in "$SCAFFOLD_DIR/profiles/angular-dotnet/rules/"*.json; do
-    [[ -f "$f" ]] || continue
-    name=$(basename "$f")
-    copy_and_replace "$f" "$TARGET_DIR/.claude/rules/${name}" \
-      "profiles/angular-dotnet/rules/${name}" "rules-scans"
-  done
+  # Rules — filter by scope on filename prefix (be-*.json / fe-*.json)
+  if [[ -d "$PROFILE_SCAFFOLD_DIR/rules" ]]; then
+    for f in "$PROFILE_SCAFFOLD_DIR/rules/"*.json; do
+      [[ -f "$f" ]] || continue
+      name=$(basename "$f")
+      if [[ "$name" == be-*.json ]] && ! scope_includes_be; then continue; fi
+      if [[ "$name" == fe-*.json ]] && ! scope_includes_fe; then continue; fi
+      copy_and_replace "$f" "$TARGET_DIR/.claude/rules/${name}" \
+        "profiles/${_profile}/rules/${name}" "rules-scans"
+    done
+  fi
 
   # Append profile anti-patterns (with placeholder replacement)
-  if [[ -f "$SCAFFOLD_DIR/profiles/angular-dotnet/anti-patterns-profile.md" ]]; then
+  if [[ -f "$PROFILE_SCAFFOLD_DIR/anti-patterns-profile.md" ]]; then
     echo "" >> "$TARGET_DIR/.claude/anti-patterns.md"
-    cat "$SCAFFOLD_DIR/profiles/angular-dotnet/anti-patterns-profile.md" >> "$TARGET_DIR/.claude/anti-patterns.md"
+    cat "$PROFILE_SCAFFOLD_DIR/anti-patterns-profile.md" >> "$TARGET_DIR/.claude/anti-patterns.md"
     for key in "${!PLACEHOLDERS[@]}"; do
       _token="__${key}__"
       _value="${PLACEHOLDERS[$key]}"
       _escaped=$(printf '%s' "$_value" | sed 's/[&/\]/\\&/g')
       sed -i "s|${_token}|${_escaped}|g" "$TARGET_DIR/.claude/anti-patterns.md"
     done
-    echo "APPEND: .claude/anti-patterns.md (profile anti-patterns)"
+    echo "APPEND: .claude/anti-patterns.md ($_profile anti-patterns)"
   fi
 
-  # Profile-specific commands
-  copy_and_replace "$SCAFFOLD_DIR/profiles/angular-dotnet/commands/kill.md" \
-    "$TARGET_DIR/.claude/commands/kill.md" \
-    "profiles/angular-dotnet/commands/kill.md" "commands"
-
-  if [[ -n "$FE_DIR" && -n "$BE_DIR" ]]; then
-    copy_and_replace "$SCAFFOLD_DIR/profiles/angular-dotnet/commands/openapi-sync.md" \
-      "$TARGET_DIR/.claude/commands/openapi-sync.md" \
-      "profiles/angular-dotnet/commands/openapi-sync.md" "commands"
+  # Profile-specific commands (if any)
+  if [[ -d "$PROFILE_SCAFFOLD_DIR/commands" ]]; then
+    for f in "$PROFILE_SCAFFOLD_DIR/commands/"*.md; do
+      [[ -f "$f" ]] || continue
+      name=$(basename "$f")
+      # Special case: openapi-sync requires SCOPE=fullstack (both FE and BE)
+      if [[ "$name" == "openapi-sync.md" ]] && { [[ "$SCOPE" != "fullstack" ]] || [[ -z "$FE_DIR" ]] || [[ -z "$BE_DIR" ]]; }; then
+        continue
+      fi
+      copy_and_replace "$f" "$TARGET_DIR/.claude/commands/${name}" \
+        "profiles/${_profile}/commands/${name}" "commands"
+    done
   fi
-fi
+done
+unset _profile
 
 # --- Generate scaffold manifest ---
 generate_manifest() {
@@ -286,12 +470,22 @@ generate_manifest() {
     placeholders_json+=$(printf '\n    "%s": "%s"' "$key" "$val")
   done
 
+  # Build profiles array JSON ["a","b",...] from resolved PROFILE_LIST
+  local profiles_json=""
+  local pfirst=true
+  for _p in "${PROFILE_LIST[@]}"; do
+    if [[ "$pfirst" == "true" ]]; then pfirst=false; else profiles_json+=", "; fi
+    profiles_json+="\"$(_json_str "$_p")\""
+  done
+
   cat > "$manifest" <<MANIFEST_EOF
 {
   "version": "${PLUGIN_VERSION}",
   "scaffoldedAt": "${timestamp}",
   "updatedAt": null,
   "profile": "${PROFILE}",
+  "profiles": [${profiles_json}],
+  "scope": "${SCOPE}",
   "placeholders": {${placeholders_json}
   },
   "files": {${files_json}

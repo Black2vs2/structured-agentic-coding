@@ -1,0 +1,34 @@
+#!/usr/bin/env bash
+# sac-graph — plugin-level shim that resolves to the Python venv binary.
+#
+# Claude Code adds <plugin>/bin to PATH when the plugin is active, so dropping
+# this script here makes `sac-graph` callable from any scaffolded project
+# (and from the /rebuild-graph slash command) without requiring the user to
+# manually add graph-server/.venv/bin to their shell PATH.
+#
+# On first call, if the Python venv hasn't been created yet (fresh plugin
+# install), we auto-invoke install-graph-server.sh once. Subsequent calls
+# exec the real binary directly with no overhead.
+
+set -euo pipefail
+
+BIN_DIR="$(cd "$(dirname "$0")" && pwd)"
+PLUGIN_ROOT="$(dirname "$BIN_DIR")"
+VENV_BIN="$PLUGIN_ROOT/graph-server/.venv/bin/sac-graph"
+
+if [[ ! -x "$VENV_BIN" ]]; then
+  echo "sac-graph: first run — installing graph server venv..." >&2
+  if ! bash "$PLUGIN_ROOT/scripts/install-graph-server.sh" >&2; then
+    echo "sac-graph: install failed. Use Grep as a fallback for structural queries." >&2
+    exit 127
+  fi
+fi
+
+if [[ ! -x "$VENV_BIN" ]]; then
+  echo "sac-graph: venv install did not produce $VENV_BIN" >&2
+  echo "sac-graph: ensure Python 3.10+ is available and re-run:" >&2
+  echo "  bash $PLUGIN_ROOT/scripts/install-graph-server.sh" >&2
+  exit 127
+fi
+
+exec "$VENV_BIN" "$@"

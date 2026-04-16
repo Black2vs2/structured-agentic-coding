@@ -1,0 +1,113 @@
+{
+  "version": "4.3.2",
+  "scaffoldedAt": "<NORMALIZED_TIMESTAMP>",
+  "updatedAt": null,
+  "profile": "base",
+  "profiles": [
+    "base"
+  ],
+  "scope": "fullstack",
+  "placeholders": {
+    "BE_BUILD": "echo build",
+    "BE_DIR": "backend",
+    "BE_FORMAT": "echo format",
+    "BE_RUN": "echo run",
+    "BE_TEST": "echo test",
+    "DB_START": "echo db",
+    "E2E_CMD": "echo e2e",
+    "FE_BUILD": "npm run build",
+    "FE_DIR": "frontend",
+    "FE_FORMAT": "npm run format",
+    "FE_LINT": "npm run lint",
+    "FE_SERVE": "npm run dev",
+    "FE_TEST": "npm run test",
+    "MIGRATION": "echo mig",
+    "PLUGIN_DIR": "<NORMALIZED_PLUGIN_DIR>",
+    "PREFIX": "testbase",
+    "PROJECT_DESC": "Test base project for smoke testing",
+    "PROJECT_NAME": "Test Base",
+    "SCOPE": "fullstack"
+  },
+  "files": {
+    ".claude/agents/codebase/testbase-doc-enforcer.md": {
+      "hash": "sha256:a8d75e16a78dcc1097a0996d0a9aa5eda17d51e15bbd2443596b7fb30a40faa1",
+      "category": "agents-core",
+      "source": "base/agents/codebase/doc-enforcer.md"
+    },
+    ".claude/agents/codebase/testbase-masterplan-architect.md": {
+      "hash": "sha256:73c89eb91b6c2b4ad74689fe2af84295c2cb2d6068219d9a63dc063913b0f6f2",
+      "category": "agents-core",
+      "source": "base/agents/codebase/masterplan-architect.md"
+    },
+    ".claude/agents/codebase/testbase-masterplan-executor.md": {
+      "hash": "sha256:fe02a9ea51decd064ecef34f03e8bb71dacf10ef7b81eb14eefa1b684cbeeb72",
+      "category": "agents-core",
+      "source": "base/agents/codebase/masterplan-executor.md"
+    },
+    ".claude/agents/codebase/testbase-masterplan-reviewer.md": {
+      "hash": "sha256:3cb44ae792c4be4f71d94a0985d6274fcc33cf426d011355ac9c295c640ad1f2",
+      "category": "agents-core",
+      "source": "base/agents/codebase/masterplan-reviewer.md"
+    },
+    ".claude/agents/domain/testbase-impact-analyst.md": {
+      "hash": "sha256:c4bb89fdc86f36e7b3718c6e22b89129c8be902f7c10dd06e2a9c7a5ee5531eb",
+      "category": "agents-core",
+      "source": "base/agents/domain/impact-analyst.md"
+    },
+    ".claude/agents/domain/testbase-research.md": {
+      "hash": "sha256:688b3beac67b0d99c626cdcd2c0dc0f7fbcf33be1745539c6eba91331b49c24b",
+      "category": "agents-core",
+      "source": "base/agents/domain/research.md"
+    },
+    ".claude/commands/kill.md": {
+      "hash": "sha256:b4fbe2c0395d7bb8b91627fc4f744ded787de5afa9c6dbef7a8d1873f205b5fe",
+      "category": "commands",
+      "source": "base/commands/kill.md"
+    },
+    ".claude/commands/masterplan-review.md": {
+      "hash": "sha256:77d61f8b46f1a123790f2816f53fa17cd5129aae0c45153bdc79a19d08d72081",
+      "category": "commands",
+      "source": "base/commands/masterplan-review.md"
+    },
+    ".claude/commands/masterplan.md": {
+      "hash": "sha256:0201999672193da551317bdc84095c6755d87c212896dbb12375570d57a5c827",
+      "category": "commands",
+      "source": "base/commands/masterplan.md"
+    },
+    ".claude/commands/rebuild-graph.md": {
+      "hash": "sha256:f031b840e8a200b0b8edddca6ec6d1226f5b20b9d6be9df9e9dca6e61f2d228b",
+      "category": "commands",
+      "source": "base/commands/rebuild-graph.md"
+    },
+    ".claude/templates/ARCHITECTURE.template.md": {
+      "hash": "sha256:4b390f60ceafb4a1e08269e68c29c380dc35bfc5ec44f6fb2e0e9c982ba7dba9",
+      "category": "templates",
+      "source": "base/templates/ARCHITECTURE.template.md"
+    },
+    ".claude/templates/GUIDELINES.template.md": {
+      "hash": "sha256:f4c64443c9a9c74651b5c33b1d6df2f8f4bedc374f2d0742730f6dbc9943be10",
+      "category": "templates",
+      "source": "base/templates/GUIDELINES.template.md"
+    },
+    "CLAUDE.md": {
+      "hash": "sha256:76c614515a205e1ab23bc35e2a52e787284c39612411b66357113482b163242b",
+      "category": "templates",
+      "source": "base/claude"
+    },
+    ".claude/AGENTS.md": {
+      "hash": "sha256:edbb40e88384ee1711c584385e98896dbd56ea66e1dbe2c78864b601ef4922c0",
+      "category": "templates",
+      "source": "base/agents-md"
+    },
+    ".claude/settings.json": {
+      "hash": "sha256:540e419f443839ee85a45b575ec917a02e5e12296b14eede05435d38ac026115",
+      "category": "config",
+      "source": "base/settings"
+    },
+    ".claude/anti-patterns.md": {
+      "hash": "sha256:c41c60759741737a7f4b2289eaaaca5a5d50fc614c29d34adb5fcd1b9ca8952b",
+      "category": "config",
+      "source": "base/anti-patterns.md"
+    }
+  }
+}

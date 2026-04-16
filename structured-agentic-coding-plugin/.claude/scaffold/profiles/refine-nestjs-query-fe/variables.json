@@ -1,0 +1,164 @@
+{
+  "profile": "refine-nestjs-query-fe",
+  "scope": "fe",
+  "context_hints": [
+    {
+      "file": "CLAUDE.md",
+      "grep": "(?i)refine\\.dev|@refinedev",
+      "implies": { "FRAMEWORK_STACK": "refine" }
+    },
+    {
+      "file": "README.md",
+      "grep": "(?i)refine\\.dev|@refinedev",
+      "implies": { "FRAMEWORK_STACK": "refine" }
+    },
+    {
+      "file": "CLAUDE.md",
+      "grep": "(?i)zod/v4|zod v4",
+      "implies": { "ZOD_VERSION": "v4" }
+    },
+    {
+      "file": "CLAUDE.md",
+      "grep": "(?i)bun (required|only|mandatory)",
+      "implies": { "FE_RUNTIME": "bun" }
+    },
+    {
+      "file": "README.md",
+      "grep": "(?i)shadcn|components\\.json",
+      "implies": { "UI_LIB": "shadcn" }
+    },
+    {
+      "file": "package.json",
+      "grep": "@tailwindcss/vite",
+      "implies": { "TAILWIND_VERSION": "v4" }
+    }
+  ],
+  "variables": [
+    {
+      "key": "FE_RUNTIME",
+      "label": "Frontend runtime (bun|node)",
+      "scope": "fe",
+      "required": true,
+      "detect": [
+        { "type": "context-inferred", "from": "FE_RUNTIME" },
+        { "type": "glob-present", "pattern": "bun.lock", "value_when_true": "bun" },
+        { "type": "glob-present", "pattern": "bun.lockb", "value_when_true": "bun" },
+        { "type": "static", "value": "bun" }
+      ]
+    },
+    {
+      "key": "FE_SERVE",
+      "label": "Frontend dev server command",
+      "scope": "fe",
+      "required": true,
+      "detect": [
+        { "type": "package-json-script", "script": "dev", "runtime_prefix": true },
+        { "type": "package-json-script", "script": "start", "runtime_prefix": true },
+        { "type": "static", "value": "bun run dev" }
+      ]
+    },
+    {
+      "key": "FE_BUILD",
+      "label": "Frontend production build command",
+      "scope": "fe",
+      "required": true,
+      "detect": [
+        { "type": "package-json-script", "script": "build", "runtime_prefix": true },
+        { "type": "static", "value": "bun run build" }
+      ]
+    },
+    {
+      "key": "FE_BUILD_STAGE",
+      "label": "Frontend staging build command",
+      "scope": "fe",
+      "required": false,
+      "detect": [
+        { "type": "package-json-script", "script": "build:stage", "runtime_prefix": true },
+        { "type": "package-json-script", "script": "build:staging", "runtime_prefix": true },
+        { "type": "static", "value": "bun run build:stage" }
+      ]
+    },
+    {
+      "key": "FE_FORMAT",
+      "label": "Frontend format command",
+      "scope": "fe",
+      "required": true,
+      "detect": [
+        { "type": "package-json-script", "script": "format", "runtime_prefix": true },
+        { "type": "static", "value": "bun run format" }
+      ]
+    },
+    {
+      "key": "FE_LINT",
+      "label": "Frontend lint check command",
+      "scope": "fe",
+      "required": true,
+      "detect": [
+        { "type": "package-json-script", "script": "lint", "runtime_prefix": true },
+        { "type": "static", "value": "bun run lint" }
+      ]
+    },
+    {
+      "key": "FE_LINT_FIX",
+      "label": "Frontend lint autofix command",
+      "scope": "fe",
+      "required": true,
+      "detect": [
+        { "type": "package-json-script", "script": "lint:fix", "runtime_prefix": true },
+        { "type": "static", "value": "bun run lint:fix" }
+      ]
+    },
+    {
+      "key": "FE_TYPECHECK",
+      "label": "Frontend typecheck command",
+      "scope": "fe",
+      "required": true,
+      "detect": [
+        { "type": "package-json-script", "script": "typecheck", "runtime_prefix": true },
+        { "type": "package-json-script", "script": "tsc", "runtime_prefix": true },
+        { "type": "static", "value": "bun run tsc" }
+      ]
+    },
+    {
+      "key": "FE_TEST",
+      "label": "Frontend unit test command (Vitest)",
+      "scope": "fe",
+      "required": false,
+      "detect": [
+        { "type": "package-json-script", "script": "test", "runtime_prefix": true },
+        { "type": "static", "value": "bun run test" }
+      ]
+    },
+    {
+      "key": "E2E_CMD",
+      "label": "End-to-end test command",
+      "scope": "fe",
+      "required": false,
+      "detect": [
+        { "type": "glob-present", "pattern": "**/playwright.config.*", "value_when_true": "bun run test:e2e" },
+        { "type": "glob-present", "pattern": "**/cypress.config.*", "value_when_true": "bun run cypress" }
+      ]
+    },
+    {
+      "key": "GRAPHQL_CODEGEN",
+      "label": "GraphQL codegen command",
+      "scope": "fe",
+      "required": true,
+      "detect": [
+        { "type": "package-json-script", "script": "codegen", "runtime_prefix": true },
+        { "type": "static", "value": "bun run codegen" }
+      ]
+    },
+    {
+      "key": "GRAPHQL_SCHEMA_SRC",
+      "label": "GraphQL schema source (URL or local path)",
+      "scope": "fe",
+      "type": "url-or-path",
+      "required": true,
+      "detect": [
+        { "type": "regex-capture-from-files", "glob": "graphql.config.ts", "pattern": "schema:\\s*['\"]([^'\"]+)['\"]" },
+        { "type": "regex-capture-from-files", "glob": "graphql.config.*", "pattern": "schema:\\s*['\"]([^'\"]+)['\"]" }
+      ]
+    }
+  ]
+}

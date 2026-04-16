@@ -1,11 +1,11 @@
 ---
 name: masterplan-executor
-description: Execute a masterplan file — parse phases and tasks, dispatch dev agents per task with rules injection, review incrementally, fix issues with circuit breaker, commit per phase. Resume interrupted masterplans from last unchecked task.
+description: Execute a masterplan file — parse phases and tasks, dispatch dev agents per task with rules injection, review incrementally, fix issues with circuit breaker, commit per phase. Resume interrupted masterplans from last unchecked task. Use when the user says execute, run, implement, resume, start the masterplan, or asks to build the plan.
 ---
 
 # Masterplan Executor
 
-Execute masterplan files by dispatching dev agents for implementation and verifying quality at every step. This skill spawns the executor as an Agent because the execution flow is automated and long-running.
+Execute masterplan files **inline in the main conversation**. Do NOT spawn the executor as a subagent — nested dispatch breaks and the main chat gets resumed from transcript on every follow-up (token burn). The main chat stays in the driver seat and dispatches dev/review/fix agents directly as leaves.
 
 ## Procedure
 
@@ -20,55 +20,36 @@ Glob: docs/masterplans/*.md
 ```
 
 - If one masterplan exists → confirm with user and use it
-- If multiple exist → list them and ask user to pick
-- If none exist → tell user: "No masterplans found. Create one with `/masterplan architect`"
+- If multiple exist → list them and ask the user to pick
+- If none exist → tell user: "No masterplans found. Create one with `/masterplan architect`" and stop.
 
-### Step 2: Discover Executor Agent
+### Step 2: Discover Executor Procedure
 
 ```
 Glob: .claude/agents/codebase/*-masterplan-executor.md
 ```
 
-- **Found** → Read the full agent definition file. It contains the project-specific procedure with resolved build commands, directory paths, agent discovery patterns, and rules injection logic.
-- **Not found** → Tell user: "No masterplan-executor agent found. Run `/structured-agentic-coding` to scaffold your project first." Stop.
+- **Found** → Read the full file. It contains the project-specific procedure with resolved build commands, directory paths, agent discovery patterns, and rules injection logic. Ignore its `model:` / `effort:` frontmatter (legacy subagent config — does not apply when running inline).
+- **Not found** → Tell user: "No masterplan-executor procedure found. Run `/structured-agentic-coding:scaffold` to scaffold your project first." Stop.
 
-### Step 3: Spawn Executor Agent
+### Step 3: Execute Inline
 
-Spawn the executor as an Agent. The prompt must include:
-1. The agent definition content (or path to read)
-2. The masterplan file path
-3. Instruction to follow the agent definition's procedure exactly
+Follow the procedure from the discovered file **in this conversation**. You ARE the executor — do not wrap yourself in an `Agent(...)` call.
 
-```
-Agent(
-  subagent_type="general-purpose",
-  model="opus",
-  prompt="You are the masterplan-executor agent.
+The procedure covers: parse masterplan → pre-flight validation → execute phases sequentially (tasks in parallel batches where possible) → dispatch dev agents per task scope → targeted review → fix loop with circuit breaker → purpose validation → build verify → commit → finalize.
 
-  Read and follow the agent definition at {discovered_agent_path} exactly.
+**Leaf dispatch only.** When the procedure says "dispatch dev/review/fix agent", use the Agent tool from this conversation. Those agents must be leaves — they implement/review/fix a single task and return. They do not orchestrate further phases.
 
-  Execute the masterplan at: {masterplan_path}
+**Paste task text, don't pass file paths.** Extract the task's full text (description, Files, Details, Accept, injected rules, anti-patterns) from the masterplan and paste it directly into the dispatched agent's prompt. Do NOT ask the subagent to re-read the masterplan file — this keeps its context minimal and avoids transcript-resume pitfalls.
 
-  The agent definition contains your full procedure:
-  1. Parse the masterplan file — find first unchecked task to resume from
-  2. Pre-flight validation (protected paths, dependencies, UI decisions)
-  3. Execute phases sequentially, tasks in parallel batches where possible
-  4. Dispatch dev agents per task scope (be/fe/mixed/openapi-regen/e2e)
-  5. Run targeted code reviews after each task
-  6. Fix blocking issues (max 3 iterations with circuit breaker)
-  7. Purpose validation — verify acceptance criteria before marking complete
-  8. Build verify and commit after each phase
-  9. Finalize — regenerate manifest, run masterplan review, generate report
+**Track progress with TaskCreate.** Create one task per phase (or per task for large phases) and update status as you go. This makes resume trivial if the conversation is interrupted: on re-entry, re-read the masterplan, find the first unchecked `- [ ]` line, and continue from there.
 
-  Report progress as you complete each phase.
-  Escalate to user on failures — do NOT skip or guess."
-)
-```
+**Escalate, don't guess.** On failures (circuit breaker tripped, build failing after 2 attempts, unexpected state), STOP and report to the user. Do not retry beyond the limits set in the procedure.
 
 ### Step 4: Report Results
 
-When the executor agent completes, relay its output to the user:
-- Completion report path
-- Summary of phases/tasks completed
+After the procedure completes, summarize for the user:
+- Completion report path (`docs/reports/{feature-name}-masterplan-report.md`)
+- Phases/tasks completed vs total
 - Any open issues or escalations
-- Test checklist location
+- Test checklist location (appended to the masterplan file)

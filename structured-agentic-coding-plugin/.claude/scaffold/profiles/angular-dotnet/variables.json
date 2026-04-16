@@ -1,0 +1,7 @@
+{
+  "profile": "angular-dotnet",
+  "scope": "fullstack",
+  "composedFrom": ["angular-fe", "dotnet-be"],
+  "context_hints": [],
+  "variables": []
+}

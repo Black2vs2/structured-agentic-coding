@@ -14,6 +14,19 @@
 
 set -euo pipefail
 
+# --- macOS portability shim ---
+# Prefer Homebrew gnu-sed's gnubin dir over BSD sed (see scaffold.sh for details).
+for _gnubin in \
+  /usr/local/opt/gnu-sed/libexec/gnubin \
+  /opt/homebrew/opt/gnu-sed/libexec/gnubin \
+; do
+  if [[ -d "$_gnubin" ]]; then
+    export PATH="$_gnubin:$PATH"
+    break
+  fi
+done
+unset _gnubin
+
 # --- Dependency check ---
 if ! command -v jq &>/dev/null; then
   echo "ERROR: jq is required for upgrade. Install it:"
@@ -50,26 +63,53 @@ MANIFEST_PATH=""
 CATEGORIES=""
 CONFLICT_MODE="skip"
 PLUGIN_VERSION=""
+MIGRATE_PROFILE=""
 
 while [[ $# -gt 0 ]]; do
   case "$1" in
-    --manifest)       MANIFEST_PATH="$2"; shift 2 ;;
-    --categories)     CATEGORIES="$2"; shift 2 ;;
-    --conflict-mode)  CONFLICT_MODE="$2"; shift 2 ;;
-    --plugin-version) PLUGIN_VERSION="$2"; shift 2 ;;
+    --manifest)         MANIFEST_PATH="$2"; shift 2 ;;
+    --categories)       CATEGORIES="$2"; shift 2 ;;
+    --conflict-mode)    CONFLICT_MODE="$2"; shift 2 ;;
+    --plugin-version)   PLUGIN_VERSION="$2"; shift 2 ;;
+    --migrate-profile)  MIGRATE_PROFILE="$2"; shift 2 ;;
     *) echo "Unknown option: $1"; exit 1 ;;
   esac
 done
 
 # Validate required args
 [[ -z "$MANIFEST_PATH" ]]  && echo "ERROR: --manifest is required"        && exit 1
-[[ -z "$CATEGORIES" ]]     && echo "ERROR: --categories is required"      && exit 1
 [[ -z "$PLUGIN_VERSION" ]] && echo "ERROR: --plugin-version is required"  && exit 1
 [[ ! -f "$MANIFEST_PATH" ]] && echo "ERROR: Manifest not found: $MANIFEST_PATH" && exit 1
+
+# --migrate-profile doesn't require --categories (it re-runs full scaffold for the new profile)
+if [[ -z "$MIGRATE_PROFILE" && -z "$CATEGORIES" ]]; then
+  echo "ERROR: --categories is required (or pass --migrate-profile <new>)"
+  exit 1
+fi
 
 # --- Read manifest ---
 MANIFEST=$(cat "$MANIFEST_PATH")
 PROFILE=$(echo "$MANIFEST" | jq -r '.profile' | tr -d '\r')
+
+# Resolve the list of profiles that contributed to this scaffold.
+# New manifests (4.4.0+) record a `profiles` array; legacy manifests only have
+# `profile`. If the array is absent, expand the scalar via composedFrom (same
+# logic as scaffold.sh's resolve_profile_list) so umbrella upgrades still work.
+declare -a PROFILE_LIST=()
+mapfile -t PROFILE_LIST < <(echo "$MANIFEST" | jq -r '.profiles[]? // empty' | tr -d '\r')
+if [[ ${#PROFILE_LIST[@]} -eq 0 ]]; then
+  _umbrella_manifest="$SCAFFOLD_DIR/profiles/$PROFILE/variables.json"
+  if [[ -f "$_umbrella_manifest" ]]; then
+    mapfile -t _composed < <(jq -r '.composedFrom[]? // empty' "$_umbrella_manifest" 2>/dev/null)
+    if [[ ${#_composed[@]} -gt 0 ]]; then
+      PROFILE_LIST=("${_composed[@]}" "$PROFILE")
+    fi
+  fi
+  unset _umbrella_manifest _composed
+fi
+if [[ ${#PROFILE_LIST[@]} -eq 0 ]]; then
+  PROFILE_LIST=("$PROFILE")
+fi
 
 # Read placeholders into associative array
 # Note: tr -d '\r' strips Windows CR that jq may emit, preventing \r in filenames
@@ -83,6 +123,66 @@ PLACEHOLDERS["PLUGIN_DIR"]="$PLUGIN_DIR"
 PREFIX="${PLACEHOLDERS[PREFIX]:-}"
 FE_DIR="${PLACEHOLDERS[FE_DIR]:-}"
 BE_DIR="${PLACEHOLDERS[BE_DIR]:-}"
+
+# --- Profile migration branch ---
+# When --migrate-profile is set, re-run scaffold.sh with the new profile and
+# carry-over placeholders. scaffold.sh's skip-if-exists preserves user files
+# automatically — so existing edits stay untouched and only new profile-specific
+# files get created.
+if [[ -n "$MIGRATE_PROFILE" ]]; then
+  echo "=== Profile migration: $PROFILE → $MIGRATE_PROFILE ==="
+
+  # Carry-over placeholders (always compatible across profiles)
+  CARRY_OVER_KEYS=(PREFIX PROJECT_NAME PROJECT_DESC FE_DIR BE_DIR SCOPE)
+
+  # Build scaffold.sh args
+  SCAFFOLD_SCRIPT="$PLUGIN_DIR/scripts/scaffold.sh"
+  SCAFFOLD_ARGS=()
+  for key in "${CARRY_OVER_KEYS[@]}"; do
+    value="${PLACEHOLDERS[$key]:-}"
+    if [[ -n "$value" ]]; then
+      SCAFFOLD_ARGS+=("$key=$value")
+    fi
+  done
+
+  # For any stack-specific placeholder already resolved in the old manifest,
+  # keep it if it's also declared by the new profile's variables.json (same name = same meaning).
+  # Users can manually re-run scaffold/upgrade after reviewing the result if they need to change a value.
+  NEW_MANIFEST="$SCAFFOLD_DIR/profiles/$MIGRATE_PROFILE/variables.json"
+  if [[ -f "$NEW_MANIFEST" ]]; then
+    while IFS= read -r new_key; do
+      [[ -z "$new_key" ]] && continue
+      for carried_key in "${CARRY_OVER_KEYS[@]}"; do
+        [[ "$new_key" == "$carried_key" ]] && continue 2
+      done
+      existing_value="${PLACEHOLDERS[$new_key]:-}"
+      if [[ -n "$existing_value" ]]; then
+        SCAFFOLD_ARGS+=("$new_key=$existing_value")
+      fi
+    done < <(jq -r '.variables[]?.key' "$NEW_MANIFEST" 2>/dev/null)
+  fi
+
+  echo "Carrying over: ${SCAFFOLD_ARGS[*]}"
+  echo ""
+
+  # Invoke scaffold.sh; it skips any existing files (including user-modified ones).
+  bash "$SCAFFOLD_SCRIPT" "$SCAFFOLD_DIR" "$TARGET_DIR" "$MIGRATE_PROFILE" "${SCAFFOLD_ARGS[@]}"
+
+  # Update the manifest's profile field in-place
+  MANIFEST_OUT="$TARGET_DIR/.claude/scaffold-manifest.json"
+  if [[ -f "$MANIFEST_OUT" ]]; then
+    jq --arg p "$MIGRATE_PROFILE" '.profile = $p' "$MANIFEST_OUT" > "$MANIFEST_OUT.tmp" \
+      && mv "$MANIFEST_OUT.tmp" "$MANIFEST_OUT"
+  fi
+
+  echo ""
+  echo "=== Migration complete ==="
+  echo "Profile: $PROFILE → $MIGRATE_PROFILE"
+  echo ""
+  echo "Review the changes, then run upgrade again (without --migrate-profile)"
+  echo "to pick up the latest plugin version's fixes."
+  exit 0
+fi
 
 # Parse selected categories into array
 IFS=',' read -ra SELECTED_CATEGORIES <<< "$CATEGORIES"
@@ -213,12 +313,14 @@ process_template() {
   rm -f "$rendered"
 }
 
-# --- Helper: process anti-patterns.md as merged base+profile file ---
-# scaffold.sh appends the profile anti-patterns to the base file.
-# upgrade.sh must do the same to produce the correct hash for comparison.
+# --- Helper: process anti-patterns.md as merged base + any number of profile overlays ---
+# scaffold.sh appends every profile's anti-patterns-profile.md to the base file.
+# upgrade.sh must merge the same set (same order) to produce a matching hash.
+#
+# Usage: process_merged_anti_patterns <base_src> <profile_src_1> [<profile_src_2> ...]
 process_merged_anti_patterns() {
   local base_src="$1"
-  local profile_src="$2"
+  shift
   local target_rel=".claude/anti-patterns.md"
   local target_path="$TARGET_DIR/$target_rel"
 
@@ -226,17 +328,20 @@ process_merged_anti_patterns() {
   local rendered_base
   rendered_base=$(render_template "$base_src")
 
-  # Render profile template
-  local rendered_profile
-  rendered_profile=$(render_template "$profile_src")
-
-  # Merge: append profile to base (same as scaffold.sh)
+  # Merge: base + each profile overlay (blank line between, same as scaffold.sh)
   local merged
   merged=$(mktemp "$TEMP_DIR/anti-patterns-merged.XXXXXX")
   cat "$rendered_base" > "$merged"
-  echo "" >> "$merged"
-  cat "$rendered_profile" >> "$merged"
-  rm -f "$rendered_base" "$rendered_profile"
+  rm -f "$rendered_base"
+  local overlay_src
+  for overlay_src in "$@"; do
+    [[ -f "$overlay_src" ]] || continue
+    local rendered_overlay
+    rendered_overlay=$(render_template "$overlay_src")
+    echo "" >> "$merged"
+    cat "$rendered_overlay" >> "$merged"
+    rm -f "$rendered_overlay"
+  done
 
   local manifest_hash
   manifest_hash=$(get_manifest_hash "$target_rel")
@@ -337,86 +442,116 @@ if is_category_selected "templates"; then
 fi
 
 # config: base/settings.json, base/anti-patterns.md
-# Note: for angular-dotnet, anti-patterns.md is handled separately (merged with profile)
+# anti-patterns is handled per-profile below (merged with each profile's overlay).
+# If NO profile contributed an anti-patterns-profile.md, fall back to base-only here.
+has_profile_anti_patterns=false
+for _p in "${PROFILE_LIST[@]}"; do
+  if [[ -f "$SCAFFOLD_DIR/profiles/$_p/anti-patterns-profile.md" ]]; then
+    has_profile_anti_patterns=true
+    break
+  fi
+done
+unset _p
+
 if is_category_selected "config"; then
   process_template "$SCAFFOLD_DIR/base/settings.json" ".claude/settings.json" \
     "base/settings.json" "config"
-  if [[ "$PROFILE" != "angular-dotnet" ]]; then
+  if [[ "$has_profile_anti_patterns" != "true" ]]; then
     process_template "$SCAFFOLD_DIR/base/anti-patterns.md" ".claude/anti-patterns.md" \
       "base/anti-patterns.md" "config"
   fi
 fi
 
-# Process profile templates (only if profile matches)
-if [[ "$PROFILE" == "angular-dotnet" ]]; then
+# Process profile templates — iterate over every profile in PROFILE_LIST so
+# composed/umbrella scaffolds upgrade all contributing profiles' files in one pass.
+for _profile in "${PROFILE_LIST[@]}"; do
+  PROFILE_SCAFFOLD_DIR="$SCAFFOLD_DIR/profiles/$_profile"
+  [[ -d "$PROFILE_SCAFFOLD_DIR" ]] || continue
 
   # agents-profile
   if is_category_selected "agents-profile"; then
-    for f in "$SCAFFOLD_DIR/profiles/angular-dotnet/agents/backend/"*.md; do
-      [[ -f "$f" ]] || continue
-      name=$(basename "$f")
-      process_template "$f" "${BE_DIR}/.claude/agents/${PREFIX}-${name}" \
-        "profiles/angular-dotnet/agents/backend/${name}" "agents-profile"
-    done
-    for f in "$SCAFFOLD_DIR/profiles/angular-dotnet/agents/frontend/"*.md; do
-      [[ -f "$f" ]] || continue
-      name=$(basename "$f")
-      process_template "$f" "${FE_DIR}/.claude/agents/${PREFIX}-${name}" \
-        "profiles/angular-dotnet/agents/frontend/${name}" "agents-profile"
-    done
-    for f in "$SCAFFOLD_DIR/profiles/angular-dotnet/agents/domain/"*.md; do
-      [[ -f "$f" ]] || continue
-      name=$(basename "$f")
-      process_template "$f" ".claude/agents/domain/${PREFIX}-${name}" \
-        "profiles/angular-dotnet/agents/domain/${name}" "agents-profile"
-    done
+    if [[ -d "$PROFILE_SCAFFOLD_DIR/agents/backend" ]]; then
+      for f in "$PROFILE_SCAFFOLD_DIR/agents/backend/"*.md; do
+        [[ -f "$f" ]] || continue
+        name=$(basename "$f")
+        process_template "$f" "${BE_DIR}/.claude/agents/${PREFIX}-${name}" \
+          "profiles/${_profile}/agents/backend/${name}" "agents-profile"
+      done
+    fi
+    if [[ -d "$PROFILE_SCAFFOLD_DIR/agents/frontend" ]]; then
+      for f in "$PROFILE_SCAFFOLD_DIR/agents/frontend/"*.md; do
+        [[ -f "$f" ]] || continue
+        name=$(basename "$f")
+        process_template "$f" "${FE_DIR}/.claude/agents/${PREFIX}-${name}" \
+          "profiles/${_profile}/agents/frontend/${name}" "agents-profile"
+      done
+    fi
+    if [[ -d "$PROFILE_SCAFFOLD_DIR/agents/domain" ]]; then
+      for f in "$PROFILE_SCAFFOLD_DIR/agents/domain/"*.md; do
+        [[ -f "$f" ]] || continue
+        name=$(basename "$f")
+        process_template "$f" ".claude/agents/domain/${PREFIX}-${name}" \
+          "profiles/${_profile}/agents/domain/${name}" "agents-profile"
+      done
+    fi
   fi
 
   # commands (profile)
-  if is_category_selected "commands"; then
-    if [[ -f "$SCAFFOLD_DIR/profiles/angular-dotnet/commands/kill.md" ]]; then
-      process_template "$SCAFFOLD_DIR/profiles/angular-dotnet/commands/kill.md" \
-        ".claude/commands/kill.md" \
-        "profiles/angular-dotnet/commands/kill.md" "commands"
-    fi
-    if [[ -f "$SCAFFOLD_DIR/profiles/angular-dotnet/commands/openapi-sync.md" ]] && \
-       [[ -n "$FE_DIR" && -n "$BE_DIR" ]]; then
-      process_template "$SCAFFOLD_DIR/profiles/angular-dotnet/commands/openapi-sync.md" \
-        ".claude/commands/openapi-sync.md" \
-        "profiles/angular-dotnet/commands/openapi-sync.md" "commands"
-    fi
+  if is_category_selected "commands" && [[ -d "$PROFILE_SCAFFOLD_DIR/commands" ]]; then
+    for f in "$PROFILE_SCAFFOLD_DIR/commands/"*.md; do
+      [[ -f "$f" ]] || continue
+      name=$(basename "$f")
+      # openapi-sync requires both FE and BE to be scaffolded.
+      if [[ "$name" == "openapi-sync.md" ]] && { [[ -z "$FE_DIR" ]] || [[ -z "$BE_DIR" ]]; }; then
+        continue
+      fi
+      process_template "$f" ".claude/commands/${name}" \
+        "profiles/${_profile}/commands/${name}" "commands"
+    done
   fi
 
   # rules-scans
   if is_category_selected "rules-scans"; then
-    for f in "$SCAFFOLD_DIR/profiles/angular-dotnet/scans/be-scans/"*.md; do
-      [[ -f "$f" ]] || continue
-      name=$(basename "$f")
-      process_template "$f" "${BE_DIR}/.claude/agents/be-scans/${name}" \
-        "profiles/angular-dotnet/scans/be-scans/${name}" "rules-scans"
-    done
-    for f in "$SCAFFOLD_DIR/profiles/angular-dotnet/scans/fe-scans/"*.md; do
-      [[ -f "$f" ]] || continue
-      name=$(basename "$f")
-      process_template "$f" "${FE_DIR}/.claude/agents/fe-scans/${name}" \
-        "profiles/angular-dotnet/scans/fe-scans/${name}" "rules-scans"
-    done
-    for f in "$SCAFFOLD_DIR/profiles/angular-dotnet/rules/"*.json; do
-      [[ -f "$f" ]] || continue
-      name=$(basename "$f")
-      process_template "$f" ".claude/rules/${name}" \
-        "profiles/angular-dotnet/rules/${name}" "rules-scans"
-    done
-  fi
-
-  # config (profile anti-patterns — merged into .claude/anti-patterns.md like scaffold.sh)
-  if is_category_selected "config"; then
-    if [[ -f "$SCAFFOLD_DIR/profiles/angular-dotnet/anti-patterns-profile.md" ]]; then
-      process_merged_anti_patterns \
-        "$SCAFFOLD_DIR/base/anti-patterns.md" \
-        "$SCAFFOLD_DIR/profiles/angular-dotnet/anti-patterns-profile.md"
+    if [[ -d "$PROFILE_SCAFFOLD_DIR/scans/be-scans" ]]; then
+      for f in "$PROFILE_SCAFFOLD_DIR/scans/be-scans/"*.md; do
+        [[ -f "$f" ]] || continue
+        name=$(basename "$f")
+        process_template "$f" "${BE_DIR}/.claude/agents/be-scans/${name}" \
+          "profiles/${_profile}/scans/be-scans/${name}" "rules-scans"
+      done
+    fi
+    if [[ -d "$PROFILE_SCAFFOLD_DIR/scans/fe-scans" ]]; then
+      for f in "$PROFILE_SCAFFOLD_DIR/scans/fe-scans/"*.md; do
+        [[ -f "$f" ]] || continue
+        name=$(basename "$f")
+        process_template "$f" "${FE_DIR}/.claude/agents/fe-scans/${name}" \
+          "profiles/${_profile}/scans/fe-scans/${name}" "rules-scans"
+      done
+    fi
+    if [[ -d "$PROFILE_SCAFFOLD_DIR/rules" ]]; then
+      for f in "$PROFILE_SCAFFOLD_DIR/rules/"*.json; do
+        [[ -f "$f" ]] || continue
+        name=$(basename "$f")
+        process_template "$f" ".claude/rules/${name}" \
+          "profiles/${_profile}/rules/${name}" "rules-scans"
+      done
     fi
   fi
+done
+unset _profile
+
+# config: merged anti-patterns (base + every contributing profile's overlay).
+# Replaces the old hardcoded angular-dotnet branch with a generic multi-profile merge.
+if is_category_selected "config" && [[ "$has_profile_anti_patterns" == "true" ]]; then
+  profile_overlays=()
+  for _p in "${PROFILE_LIST[@]}"; do
+    _overlay="$SCAFFOLD_DIR/profiles/$_p/anti-patterns-profile.md"
+    [[ -f "$_overlay" ]] && profile_overlays+=("$_overlay")
+  done
+  unset _p _overlay
+  process_merged_anti_patterns \
+    "$SCAFFOLD_DIR/base/anti-patterns.md" \
+    "${profile_overlays[@]}"
 fi
 
 # --- Detect files removed upstream and preserve non-selected categories ---
@@ -452,6 +587,14 @@ FILES_JSON=$(printf '%s' "$files_array" | jq 'reduce .[] as $item ({}; .[$item.k
 # Build placeholders JSON (preserve from original)
 PLACEHOLDERS_JSON=$(echo "$MANIFEST" | jq '.placeholders')
 
+# Build the resolved `profiles` array so the upgraded manifest carries the same
+# composition metadata that scaffold.sh writes for fresh scaffolds.
+PROFILES_JSON="[]"
+for _p in "${PROFILE_LIST[@]}"; do
+  PROFILES_JSON=$(printf '%s' "$PROFILES_JSON" | jq --arg p "$_p" '. + [$p]')
+done
+unset _p
+
 # Write updated manifest (atomic write via jq + mv)
 tmp_manifest=$(mktemp "$TEMP_DIR/manifest.XXXXXX")
 jq -n \
@@ -459,9 +602,10 @@ jq -n \
   --arg scaffoldedAt "$SCAFFOLD_AT" \
   --arg updatedAt "$TIMESTAMP" \
   --arg profile "$PROFILE" \
+  --argjson profiles "$PROFILES_JSON" \
   --argjson placeholders "$PLACEHOLDERS_JSON" \
   --argjson files "$FILES_JSON" \
-  '{version: $version, scaffoldedAt: $scaffoldedAt, updatedAt: $updatedAt, profile: $profile, placeholders: $placeholders, files: $files}' \
+  '{version: $version, scaffoldedAt: $scaffoldedAt, updatedAt: $updatedAt, profile: $profile, profiles: $profiles, placeholders: $placeholders, files: $files}' \
   > "$tmp_manifest"
 mv "$tmp_manifest" "$MANIFEST_PATH"
 
