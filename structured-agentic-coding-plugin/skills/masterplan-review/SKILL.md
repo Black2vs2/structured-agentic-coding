@@ -32,7 +32,7 @@ Glob: .claude/agents/codebase/*-masterplan-reviewer.md
 ```
 
 - **Found** → Read the full file. It contains the project-specific procedure with resolved build/test commands and scan playbook paths. Ignore its `model:` / `effort:` frontmatter (legacy subagent config — does not apply when running inline).
-- **Not found** → Tell user: "No masterplan-reviewer procedure found. Run `/structured-agentic-coding` to scaffold your project first." Stop.
+- **Not found** → Tell user: "No masterplan-reviewer procedure found. Run `/structured-agentic-coding:init` to scaffold your project first." Stop.
 
 ### Step 3: Execute Inline
 

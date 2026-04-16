@@ -89,7 +89,7 @@ That's it. Your project now has agents, rules, scan playbooks, and documentation
 /plugin update structured-agentic-coding@structured-agentic-coding
 ```
 
-This pulls the latest templates, script, and profiles. Re-run `/structured-agentic-coding` to scaffold new files into your project — existing files are never overwritten.
+This pulls the latest templates, script, and profiles. Re-run `/structured-agentic-coding:init` to scaffold new files into your project — existing files are never overwritten.
 
 ### Option B — Manual clone
 
@@ -99,7 +99,7 @@ If you prefer not to use the plugin system:
 git clone https://github.com/Black2vs2/structured-agentic-coding.git .
 ```
 
-Open Claude Code in your target project and run `/structured-agentic-coding`. Once scaffolding is complete, you can delete the cloned repo.
+Open Claude Code in your target project and run `/structured-agentic-coding:init`. Once scaffolding is complete, you can delete the cloned repo.
 
 ## Features
 
@@ -220,7 +220,7 @@ Contributions are welcome — new profiles, agents, scan playbooks, rules, and b
 1. Fork and clone the repository.
 2. Create a feature branch: `git checkout -b feat/your-feature`.
 3. Make your changes following the guidelines below.
-4. Test by running `/structured-agentic-coding` in a sample project.
+4. Test by running `/structured-agentic-coding:init` in a sample project.
 5. Submit a pull request.
 
 <details>
