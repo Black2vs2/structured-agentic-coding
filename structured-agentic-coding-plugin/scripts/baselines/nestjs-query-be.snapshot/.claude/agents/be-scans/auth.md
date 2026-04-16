@@ -1,6 +1,6 @@
 # Scan Playbook: Auth & Guards
 
-Category: `auth` | Rules: BE-AUTH-001 through BE-AUTH-005
+Category: `auth` | Rules: BE-AUTH-001 through BE-AUTH-009
 
 ---
 
@@ -113,3 +113,94 @@ Grep pattern: "@PartnerNotRequired\\(\\)"
 - **False positive:** Role check is in an interceptor / upstream guard — no inline check needed.
 - **Confirm:** Read the method; if the guard chain (via `@RequiredRoles`) rejects BEFORE the method runs, the check is already fail-fast and OK.
 - **Severity:** info (often the global chain covers it; escalate only if you find real post-side-effect checks)
+
+---
+
+## BE-AUTH-006 — @Authorize on all queryable DTOs
+
+**What to check:** Every DTO used as the first type arg to a `CRUDResolver` with read enabled must declare `@Authorize` at the class level.
+
+**Scan:**
+```
+Grep pattern: "^export class \\w+DTO"
+     path:    ./src/**/dto
+     output_mode: content
+```
+For each DTO file, then:
+```
+Grep pattern: "@Authorize\\("
+     path:    <same file>
+     output_mode: content
+```
+If no match, cross-reference: is the DTO used in a `CRUDResolver(DTO, ...)`? If yes AND read is not disabled, this is a violation.
+
+- **True positive:** `OrderDTO` used by `OrdersResolver extends CRUDResolver(OrderDTO, { ... })` with no `@Authorize` on the class.
+- **False positive:** Nested DTOs returned only as part of a parent relation (they inherit the parent's filter). Must have a comment like `/** Nested DTO — authorization inherited from parent. */`. Public reference-data lookups that carry a `// Public lookup: <reason>` comment.
+- **Confirm:** Read the resolver file for the DTO; if CRUDResolver has `read: { disabled: true }`, this rule is satisfied by the absence of read.
+- **Severity:** error
+
+---
+
+## BE-AUTH-007 — Feature-level guards on partner-scoped resolvers
+
+**What to check:** Resolvers whose DTO scopes by `partnerId`/`customerPartnerId` must apply `@UseGuards(PartnerAssignedGuard(...))` at the class level, OR be admin-only via class-level `@RequiredRoles(UserRole.PLATFORM_ADMIN)`.
+
+**Scan:**
+```
+Grep pattern: "^@Resolver\\(\\(\\)\\s*=>\\s*\\w+DTO\\)"
+     path:    ./src/**/resolver
+     output_mode: content
+     -A:      2
+```
+For each resolver class, check the next 2 lines for one of:
+- `@UseGuards(PartnerAssignedGuard(`
+- `@RequiredRoles(UserRole.PLATFORM_ADMIN`
+
+If neither is present, open the DTO file and check whether its `@Authorize` fallback references `partnerId` / `customerPartnerId`. If yes, this is a violation.
+
+- **True positive:** `ProductResolver` extending CRUDResolver over `ProductDTO` (which has `@Authorize` with a `partnerId` fallback), but no class-level `PartnerAssignedGuard` and not `PLATFORM_ADMIN`-only.
+- **False positive:** Resolver has per-method guards explicitly (rare — prefer class-level). Public lookup resolvers with no partner scoping.
+- **Confirm:** Read the DTO's `@Authorize` block to confirm partner scoping before flagging.
+- **Severity:** error
+
+---
+
+## BE-AUTH-008 — Custom mutations take @LoggedUser and delegate scoping
+
+**What to check:** Every custom `@Mutation` on a CRUDResolver subclass must either (a) accept `@LoggedUser() user: UserEntity` and pass it to a service that enforces scoping, or (b) be class-level `@RequiredRoles(UserRole.PLATFORM_ADMIN)`.
+
+**Scan:**
+```
+Grep pattern: "@Mutation\\("
+     path:    ./src/**/resolver
+     output_mode: content
+     -A:      10
+```
+For each match that is NOT inside a class annotated `@RequiredRoles(UserRole.PLATFORM_ADMIN)`:
+- Look for `@LoggedUser()` in the arg list (the next ~5 lines).
+- If absent, read the method body — if it performs any DB write on partner-scoped data without passing `user` or its `partnerId` into the service call, flag it.
+
+- **True positive:** `async confirmOrder(@Args('input') input: OrderIdInput) { return this.orderService.confirm(input.id); }` — no user, no scope check.
+- **False positive:** The resolver class has `@RequiredRoles(PLATFORM_ADMIN)` — admin-only mutations don't need scoping.
+- **Confirm:** Read the service method called — does it enforce `partnerId` scoping from the user, or does it trust the id? Trust-the-id is the bug.
+- **Severity:** warning
+
+---
+
+## BE-AUTH-009 — requestFilterKey pattern documented
+
+**What to check:** Any `@Authorize` block using `requestFilterKey: <SYMBOL>` must have a JSDoc comment above it naming the guard that populates the key.
+
+**Scan:**
+```
+Grep pattern: "requestFilterKey\\s*:"
+     path:    ./src/**/dto
+     output_mode: content
+     -B:      5
+```
+For each match, read the 5 lines above the `@Authorize`. Flag if there is no comment naming the guard.
+
+- **True positive:** `@Authorize({ requestFilterKey: OUTBOUND_FILTER_KEY })` with no JSDoc above.
+- **False positive:** A comment like `/** Filter key set by OutboundAuthGuard in src/outbounds/outbound-auth.guard.ts. */` is present.
+- **Confirm:** The guard named in the JSDoc actually exists and sets the key (spot-check).
+- **Severity:** warning

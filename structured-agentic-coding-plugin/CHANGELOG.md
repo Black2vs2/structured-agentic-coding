@@ -6,6 +6,17 @@ Versioning: [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+## [4.3.2] - 2026-04-16
+
+### Added
+- **nestjs-query-be: 17 new rules** backported from sps-app-backend production usage:
+  - TypeORM: BE-TYPEORM-007 (entity↔migration match), BE-TYPEORM-008 (bidirectional relations)
+  - nestjs-query: BE-QUERY-006–015 (QueryService override, wrapper inputs, dtos not resolvers, owning module import, scalar resolvers, arrow function, DTO return, single input arg, CreateDTOClass, wrapper readiness)
+  - Auth: BE-AUTH-006–009 (@Authorize on DTOs, PartnerAssignedGuard, @LoggedUser on mutations, requestFilterKey docs)
+  - Validation: BE-VAL-006 (@Type + @ValidateNested on nested arrays)
+- **nestjs-query-be: 15 new scan playbook sections** matching the new rules in auth, nestjs-query, typeorm, and validation playbooks
+- **nestjs-query-be: 3 new anti-patterns** — entity without migration, ambiguous Number scalar on FilterableField, missing CreateDTOClass/UpdateDTOClass on CRUDResolver
+
 ## [4.3.1] - 2026-04-15
 
 ### Fixed

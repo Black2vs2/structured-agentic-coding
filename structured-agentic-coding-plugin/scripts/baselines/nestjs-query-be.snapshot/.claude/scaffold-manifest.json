@@ -1,5 +1,5 @@
 {
-  "version": "4.3.1",
+  "version": "4.3.2",
   "scaffoldedAt": "<NORMALIZED_TIMESTAMP>",
   "updatedAt": null,
   "profile": "nestjs-query-be",
@@ -61,15 +61,15 @@
       "category": "commands",
       "source": "base/commands/kill.md"
     },
-    ".claude/commands/masterplan.md": {
-      "hash": "sha256:0201999672193da551317bdc84095c6755d87c212896dbb12375570d57a5c827",
-      "category": "commands",
-      "source": "base/commands/masterplan.md"
-    },
     ".claude/commands/masterplan-review.md": {
       "hash": "sha256:77d61f8b46f1a123790f2816f53fa17cd5129aae0c45153bdc79a19d08d72081",
       "category": "commands",
       "source": "base/commands/masterplan-review.md"
+    },
+    ".claude/commands/masterplan.md": {
+      "hash": "sha256:0201999672193da551317bdc84095c6755d87c212896dbb12375570d57a5c827",
+      "category": "commands",
+      "source": "base/commands/masterplan.md"
     },
     ".claude/commands/rebuild-graph.md": {
       "hash": "sha256:f031b840e8a200b0b8edddca6ec6d1226f5b20b9d6be9df9e9dca6e61f2d228b",
@@ -97,12 +97,12 @@
       "source": "base/agents-md"
     },
     ".claude/settings.json": {
-      "hash": "sha256:b9fdedf16bfcf1d540b34e232dcf627940cf668caeec85d162aa45e24dd39391",
+      "hash": "sha256:540e419f443839ee85a45b575ec917a02e5e12296b14eede05435d38ac026115",
       "category": "config",
       "source": "base/settings"
     },
     ".claude/anti-patterns.md": {
-      "hash": "sha256:dd97b7addef176817437c56a879b686c937d371707378da9d9b9269853ab4e55",
+      "hash": "sha256:f0185213c1f7215001012d030b47aa5d2315b567e2dcd7a5101710ab7fa5ec78",
       "category": "config",
       "source": "base/anti-patterns.md"
     },
@@ -142,7 +142,7 @@
       "source": "profiles/nestjs-query-be/scans/be-scans/architecture.md"
     },
     "./.claude/agents/be-scans/auth.md": {
-      "hash": "sha256:462ee5baa30c7e9624655832f6f40df8037f2c27240ee38ab1e75a820c3a2c8f",
+      "hash": "sha256:55bbb37612bc23122d3f890c806bac5c2bf1885fe5cbca4337cf87d860a31e6b",
       "category": "rules-scans",
       "source": "profiles/nestjs-query-be/scans/be-scans/auth.md"
     },
@@ -152,7 +152,7 @@
       "source": "profiles/nestjs-query-be/scans/be-scans/ci-secrets.md"
     },
     "./.claude/agents/be-scans/nestjs-query.md": {
-      "hash": "sha256:bb611787573e49220d5f195152c541dd48e3262a185e3370d58196c6842b25fb",
+      "hash": "sha256:621a7e0eebce19f7827d6425716fbc4f714eab665ef04c59536713f2942d06d9",
       "category": "rules-scans",
       "source": "profiles/nestjs-query-be/scans/be-scans/nestjs-query.md"
     },
@@ -172,17 +172,17 @@
       "source": "profiles/nestjs-query-be/scans/be-scans/testing.md"
     },
     "./.claude/agents/be-scans/typeorm.md": {
-      "hash": "sha256:99f6c3930134bb8a4c9145b76c72af9a217d487a002ad291ba3243076596cad2",
+      "hash": "sha256:e5d0f27dea76338b34665f0be50ee1d14ddcb2365bcdbf9b1d54dcb83cf67eac",
       "category": "rules-scans",
       "source": "profiles/nestjs-query-be/scans/be-scans/typeorm.md"
     },
     "./.claude/agents/be-scans/validation.md": {
-      "hash": "sha256:c7215957bb14d29a7313e975becdfb5a4e46beaf3685f2155b6baeca8936f88e",
+      "hash": "sha256:e8fa3bb5cd3b4709b33aab2117c5e5b2b90f3cd767895668f5e8eebe550414b7",
       "category": "rules-scans",
       "source": "profiles/nestjs-query-be/scans/be-scans/validation.md"
     },
     ".claude/rules/be-rules.json": {
-      "hash": "sha256:dde111597009c3a3a7e9d316271202262007364c22f8e1b050548819cc593930",
+      "hash": "sha256:3e40d2893998c7bcc11a528cd7a53a2346b2bee25183a7f5806e29d5cbe44835",
       "category": "rules-scans",
       "source": "profiles/nestjs-query-be/rules/be-rules.json"
     }

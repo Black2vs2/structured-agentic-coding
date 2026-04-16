@@ -175,3 +175,42 @@ Known failure modes specific to this stack. Check each before committing backend
 **Fix:** When mocking repositories via `getRepositoryToken`, type the mock against the real entity. Run e2e tests against a Postgres instance (managed or local `__DB_START__`) with all migrations applied (`bun run migration:run` in the test setup hook). Flag any mock that diverges from the entity.
 
 **Related rules:** BE-TEST-002, BE-TYPEORM-003
+
+---
+
+## Changing an entity without a matching migration
+
+**Trigger:** A diff modifies a file under `src/**/entity/*.ts` (touching `@Column`, `@Entity`, `@ManyToOne`, `@OneToMany`, `@Index`, `@PrimaryGeneratedColumn`, or column options: type, nullable, default, length, precision) but adds no new file under `database/migrations/`.
+
+**Why it's wrong:** The entity is the code-side of the schema; the migration is the DB-side. A change to only one side produces drift: code expects columns/types the DB doesn't have, or the DB has columns the entity ignores. Fresh-DB deploys break; existing DBs silently desync.
+
+**Fix:** After editing any entity, run `bun run migration:generate <Name> <DescriptiveName>`. Commit the generated migration in the same PR. Never rely on `synchronize: true` (see separate anti-pattern).
+
+**Related rules:** BE-TYPEORM-007
+
+---
+
+## Missing explicit GraphQL scalar type on numeric `@FilterableField()`
+
+**Trigger:** `@FilterableField(() => Number)` on a DTO field representing a decimal (e.g., `value`, `weightKg`, `customPrice`) without specifying `Float` from `@nestjs/graphql`, or an integer field without specifying `Int`.
+
+**Why it's wrong:** `@FilterableField(() => Number)` resolves to the GraphQL `Float` scalar in most cases but is ambiguous. When nestjs-query generates the schema, `Number` sometimes causes the NestJS/Apollo bootstrap to throw because it cannot determine the correct GraphQL scalar (Float vs Int). This was hit during past implementations where multiple DTOs initially used `@FilterableField(() => Number)` which broke the e2e test bootstrap and required a fixer pass to add explicit `Float` / `Int` annotations.
+
+**Fix:** Always use the explicit GraphQL scalar:
+- Decimals: `@FilterableField(() => Float)` (import `Float` from `@nestjs/graphql`)
+- Integers: `@FilterableField(() => Int)` (import `Int` from `@nestjs/graphql`)
+- Never use `@FilterableField(() => Number)` — it is ambiguous.
+
+**Related rules:** BE-QUERY-001
+
+---
+
+## Missing `CreateDTOClass` / `UpdateDTOClass` on CRUDResolver
+
+**Trigger:** A mutations resolver extends `CRUDResolver(DTO, { ... })` with create/update enabled but does NOT pass `CreateDTOClass` or `UpdateDTOClass` in the options.
+
+**Why it's wrong:** The module-level `dtos[].CreateDTOClass` in `NestjsQueryGraphQLModule.forFeature()` only registers hook and authorizer providers — it does NOT flow into CRUDResolver. Without explicit `CreateDTOClass`, nestjs-query falls back to `OmitType(DTOClass, [], InputType)`, exposing server-managed fields (`id`, `createdAt`, `updatedAt`, `status`) in create/update mutations.
+
+**Fix:** Pass `CreateDTOClass: XxxCreateInputDTO` and `UpdateDTOClass: XxxUpdateInputDTO` in the CRUDResolver options on every mutations resolver that uses auto-generated CRUD.
+
+**Related rules:** BE-QUERY-014

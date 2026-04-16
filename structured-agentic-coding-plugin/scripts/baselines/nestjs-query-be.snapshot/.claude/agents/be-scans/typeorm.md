@@ -1,6 +1,6 @@
 # Scan Playbook: TypeORM & Migrations
 
-Category: `typeorm` | Rules: BE-TYPEORM-001 through BE-TYPEORM-006
+Category: `typeorm` | Rules: BE-TYPEORM-001 through BE-TYPEORM-008
 
 ---
 
@@ -130,3 +130,41 @@ Grep pattern: "\\.query\\s*\\(\\s*['\"`](INSERT|UPDATE|DELETE)"
 - **False positive:** `await dataSource.query('SELECT ...')` — read-only analytics are acceptable with justification comment.
 - **Confirm:** Verify operation is a mutation; if it's read-only, look for a justification comment above the call.
 - **Severity:** error (mutations), info (reads without comment)
+
+---
+
+## BE-TYPEORM-007 — Entity change requires matched migration
+
+**What to check:** Any diff that modifies entity files must include a new migration file.
+
+**Scan:**
+- Changed entity files: `git diff --name-only <base>..HEAD | grep -E '^src/.*entity/.*\.ts$'`
+- If non-empty, require: `git diff --diff-filter=A --name-only <base>..HEAD | grep -E '^database/migrations/.*\.ts$'` to also be non-empty.
+- **False positive:** Entity edit that doesn't touch schema surface (JSDoc comments only, import reorder, formatting). Inspect the patch — if only whitespace/comments/imports changed, OK. Metadata-only `@Column` changes (enum mapping, eager, cascade) that don't alter the physical DB schema also OK.
+- **Confirm:** Check the entity diff for column/relation/index/enum changes vs. non-schema noise.
+- **Severity:** error
+
+---
+
+## BE-TYPEORM-008 — Bidirectional relations
+
+**What to check:** Every `@ManyToOne` on a child entity must have a matching `@OneToMany` on the parent entity, unless the child declaration has an inline `// Intentionally one-sided: <reason>` comment.
+
+**Scan:**
+```
+Grep pattern: "@ManyToOne\\("
+     path:    ./src/**/entity
+     output_mode: content
+     -B:      3
+```
+For each match:
+1. Read the 3 lines above the `@ManyToOne`. If they include `// Intentionally one-sided:`, accept and move on.
+2. Identify the target parent entity class from the arrow (e.g., `() => PartnerEntity`).
+3. Open the parent entity file (`src/<feature>/entity/<parent>.entity.ts`) and search for `@OneToMany(() => <ChildEntity>`.
+4. If no inverse is declared, this is a violation.
+5. When the inverse exists, also spot-check that the parent DTO exposes it via `@FilterableOffsetConnection(...)` if a parent→child query makes domain sense (info-level only — not a hard rule).
+
+- **True positive:** `LocationEntity.partner: PartnerEntity` declared via `@ManyToOne`; `PartnerEntity` has no `@OneToMany(() => LocationEntity, ...)` and no justification comment.
+- **False positive:** Parent has the inverse. OR the child declaration has `// Intentionally one-sided: <reason>` on the line(s) directly above.
+- **Confirm:** Open both files; verify the inverse is present/absent and read the reason comment if any.
+- **Severity:** warning

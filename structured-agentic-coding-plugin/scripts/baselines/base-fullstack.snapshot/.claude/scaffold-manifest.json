@@ -1,5 +1,5 @@
 {
-  "version": "4.3.1",
+  "version": "4.3.2",
   "scaffoldedAt": "<NORMALIZED_TIMESTAMP>",
   "updatedAt": null,
   "profile": "base",
@@ -61,15 +61,15 @@
       "category": "commands",
       "source": "base/commands/kill.md"
     },
-    ".claude/commands/masterplan.md": {
-      "hash": "sha256:0201999672193da551317bdc84095c6755d87c212896dbb12375570d57a5c827",
-      "category": "commands",
-      "source": "base/commands/masterplan.md"
-    },
     ".claude/commands/masterplan-review.md": {
       "hash": "sha256:77d61f8b46f1a123790f2816f53fa17cd5129aae0c45153bdc79a19d08d72081",
       "category": "commands",
       "source": "base/commands/masterplan-review.md"
+    },
+    ".claude/commands/masterplan.md": {
+      "hash": "sha256:0201999672193da551317bdc84095c6755d87c212896dbb12375570d57a5c827",
+      "category": "commands",
+      "source": "base/commands/masterplan.md"
     },
     ".claude/commands/rebuild-graph.md": {
       "hash": "sha256:f031b840e8a200b0b8edddca6ec6d1226f5b20b9d6be9df9e9dca6e61f2d228b",
@@ -97,7 +97,7 @@
       "source": "base/agents-md"
     },
     ".claude/settings.json": {
-      "hash": "sha256:b9fdedf16bfcf1d540b34e232dcf627940cf668caeec85d162aa45e24dd39391",
+      "hash": "sha256:540e419f443839ee85a45b575ec917a02e5e12296b14eede05435d38ac026115",
       "category": "config",
       "source": "base/settings"
     },

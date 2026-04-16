@@ -1,6 +1,6 @@
 # Scan Playbook: Validation & Errors
 
-Category: `validation` | Rules: BE-VAL-001 through BE-VAL-005
+Category: `validation` | Rules: BE-VAL-001 through BE-VAL-006
 
 ---
 
@@ -100,3 +100,23 @@ For each match, check if the same field (next 1-3 lines) has a FK-existence vali
 - **False positive:** `@IsUUID()` alone on a field that's not a FK (e.g., `@IsUUID() externalReference: string`).
 - **Confirm:** Check the field's decorator stack for both decorators.
 - **Severity:** info
+
+---
+
+## BE-VAL-006 — Nested array inputs have @Type + @ValidateNested
+
+**What to check:** Input DTO fields typed as arrays of nested input classes must have `@ValidateNested({ each: true })` + `@Type(() => NestedClass)`.
+
+**Scan:**
+```
+Grep pattern: "@Field\\(\\s*\\(\\)\\s*=>\\s*\\[\\w+InputDTO\\]"
+     path:    ./src/**/dto
+     output_mode: content
+     -A:      6
+```
+For each match, verify the decorator stack includes both `@ValidateNested({ each: true })` (from class-validator) and `@Type(() => ...)` (from class-transformer).
+
+- **True positive:** `@Field(() => [OrderItemInputDTO]) items: OrderItemInputDTO[];` with neither decorator.
+- **False positive:** Field is an array of scalar types (e.g., `@Field(() => [String])`) — not applicable.
+- **Confirm:** Both decorators required; one without the other still a violation.
+- **Severity:** error
