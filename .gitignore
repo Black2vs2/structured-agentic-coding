@@ -1,5 +1,4 @@
 settings.local.json
-docs/superpowers
 
 # Graph server Python artifacts
 __pycache__/
@@ -8,3 +7,7 @@ __pycache__/
 .venv/
 .code-graph/
 *.db
+.envrc
+statusline-portal.sh
+claude.ps1
+docs
