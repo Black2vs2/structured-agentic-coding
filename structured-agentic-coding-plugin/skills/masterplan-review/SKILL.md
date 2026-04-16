@@ -5,7 +5,7 @@ description: Review a completed masterplan against the repository — verify tas
 
 # Masterplan Review
 
-Review completed masterplans against the current state of the repository. Spawns the reviewer as an Agent for automated verification.
+Review completed masterplans **inline in the main conversation**. Do NOT spawn the reviewer as a subagent — orchestration stays in the main chat; only isolated, context-heavy scans get delegated to leaf agents.
 
 ## Procedure
 
@@ -25,48 +25,28 @@ Present the list and ask which one to review:
 > 1. `docs/masterplans/feature-a.md`
 > 2. `docs/masterplans/executed/feature-b.md`
 
-### Step 2: Discover Reviewer Agent
+### Step 2: Discover Reviewer Procedure
 
 ```
 Glob: .claude/agents/codebase/*-masterplan-reviewer.md
 ```
 
-- **Found** → Read the full agent definition file. It contains the project-specific procedure with resolved build/test commands and scan playbook paths.
-- **Not found** → Tell user: "No masterplan-reviewer agent found. Run `/structured-agentic-coding` to scaffold your project first." Stop.
+- **Found** → Read the full file. It contains the project-specific procedure with resolved build/test commands and scan playbook paths. Ignore its `model:` / `effort:` frontmatter (legacy subagent config — does not apply when running inline).
+- **Not found** → Tell user: "No masterplan-reviewer procedure found. Run `/structured-agentic-coding` to scaffold your project first." Stop.
 
-### Step 3: Spawn Reviewer Agent
+### Step 3: Execute Inline
 
-```
-Agent(
-  subagent_type="general-purpose",
-  model="opus",
-  prompt="You are the masterplan-reviewer agent.
+Follow the procedure from the discovered file **in this conversation**. You ARE the reviewer — do not wrap yourself in an `Agent(...)` call.
 
-  Read and follow the agent definition at {discovered_agent_path} exactly.
+The procedure covers: parse masterplan → verify task files exist → verify key implementation details (Grep/Read) → verify rule compliance via scan playbook patterns → verify key decisions followed → verify success criteria (static checks only) → update masterplan checkboxes → run build/test verification → generate structured review report → update anti-patterns if new recurring issues found → write report to `docs/reports/`.
 
-  Review the masterplan at: {masterplan_path}
-  Today's date: {current_date}
+**Delegate only heavy leaf work.** Most verification is direct Grep/Read in the main chat. Dispatch a subagent via the Agent tool only when a single step is genuinely context-heavy and isolated — e.g. running a large scan playbook across many files. Orchestration never leaves the main chat.
 
-  The agent definition contains your full procedure:
-  1. Parse the masterplan — extract tasks, decisions, success criteria
-  2. Verify task files exist (present/moved/missing)
-  3. Verify key implementation details via grep/read
-  4. Verify rule compliance using scan playbook patterns
-  5. Verify key decisions were followed
-  6. Verify success criteria (static checks only)
-  7. Update masterplan checkboxes for verified items
-  8. Run build and test verification
-  9. Generate structured review report
-  10. Update anti-patterns if new recurring issues found
-  11. Write report to docs/reports/
-
-  Return the full report as your final output."
-)
-```
+**Paste, don't pass.** When delegating a scan, paste the scan playbook's check list and the target file list directly into the subagent prompt. Do not ask it to re-read the masterplan or the playbook file.
 
 ### Step 4: Present Results
 
-Display the reviewer's report to the user.
+Display the review report to the user.
 
 Ask:
 > "Review report saved to `docs/reports/{feature-name}-review.md`. Any items you want to investigate further?"
