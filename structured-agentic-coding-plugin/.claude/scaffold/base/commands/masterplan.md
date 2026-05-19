@@ -47,9 +47,9 @@ Read the full file. Ignore its `model:` / `effort:` frontmatter (legacy subagent
 1. Orient — use graph tools to understand current structure
 2. Clarify — ask 5-8 questions (one at a time, prefer multiple choice)
 3. Design — produce the masterplan in the required format
-4. Self-grill — interrogate your own plan
+4. Self-grill — dispatch BOTH `masterplan-griller` (design quality) and `masterplan-compliance-scanner` (rule compliance) in parallel per round, auto-apply critical findings, stash major findings for User-Grill (max 3 rounds, early exit when BOTH return `verdict: pass`)
 5. Present — show sections for approval
-6. User-grill — walk user through the decision tree
+6. User-grill — walk user through the decision tree, starting with major findings forwarded from Self-Grill
 7. Write — save to `docs/masterplans/<feature-name>.md`
 
 Output the masterplan path at the end.

@@ -25,6 +25,7 @@ You have: Read, Glob, Grep, WebFetch, Write.
 **What you may read:**
 - ARCHITECTURE.md and GUIDELINES.md documentation files
 - `.claude/anti-patterns.md` for known failure modes
+- `.claude/rules/be-rules.json` and `.claude/rules/fe-rules.json` — the hard-constraint surface (digest only: categories + rule names + check fields; skip `why`/`fix`)
 - Up to 3 recent `docs/reports/*-review.md` files (Lessons Learned sections only)
 - Up to 5 source files cited as `Pattern reference:` in tasks
 - Any data returned by graph tool queries
@@ -38,6 +39,7 @@ You have: Read, Glob, Grep, WebFetch, Write.
 3. If relevant docs exist, Read them
 4. Read `.claude/anti-patterns.md` — these are known failure modes to guard against in your task designs
 5. Glob for `docs/reports/*-review.md` — if recent reports exist, read their `## Lessons Learned` sections to learn from past execution problems
+6. Read `.claude/rules/be-rules.json` and/or `.claude/rules/fe-rules.json` if present — extract a **digest** (category names, rule names, `check` fields; skip `why`/`fix`). This is the hard-constraint surface you must design WITHIN. Do **not** rationalize violations later in the masterplan: if a rule conflicts with the design you have in mind, surface it as a Phase 2 clarifying question ("Vincolo `BE-XYZ-001` impedisce X — derogare o cambiare approccio?"). Pre-rationalized violations are an anti-pattern in their own right; the compliance-scanner subagent in Phase 3b will flag them.
 
 ### Phase 1b: Design System Analysis (if feature has UI)
 
@@ -141,6 +143,13 @@ Then implement backend domain changes (entities, migrations, configurations).
   - Accept: |
       - [ ] {specific testable condition 1}
       - [ ] {specific testable condition 2}
+  - Rule exception: |
+      <!-- Include this block ONLY when this task deliberately deviates from a rule in .claude/rules/{be,fe}-rules.json. Omit otherwise. The compliance-scanner enforces the structure in Phase 3b. -->
+      Rule violated: <rule_id, e.g. BE-TYPEORM-006>
+      Alternatives tried:
+        - <approach 1> — fails because: <concrete reason, ideally with code/query snippet or error message>
+        - <approach 2> — fails because: <concrete reason>
+      Rationale: <why none of the alternatives work for this task>
 
 #### Commit: `feat(<scope>): <message>`
 
@@ -248,15 +257,46 @@ Update structural documentation and run post-execution review.
 ## Grill Log
 
 ### Self-Grill
-<!-- reviewer: self | external ({model_name}) -->
-| # | Question | Answer | Revision |
-|---|----------|--------|----------|
-| 1 | {question} | {answer with reasoning} | {None or what changed} |
+<!-- Self-Grill dispatches TWO subagents in parallel per round: masterplan-griller (design quality) + masterplan-compliance-scanner (rule compliance). Max 3 rounds. -->
+<!-- Loop exits early when BOTH return verdict: pass in the same round. -->
+<!-- Critical findings are auto-applied. Major findings are surfaced as User-Grill questions. Minor findings are logged but not blocking. -->
+
+#### Round 1
+
+##### Griller findings
+<!-- reviewer: griller-subagent | external ({model_name}) | self (fallback) -->
+**Verdict:** {pass | revise}
+**Summary:** {one-line summary from griller}
+
+| # | Dimension | Severity | Finding | Fix Applied |
+|---|-----------|----------|---------|-------------|
+| F1 | {Scope/Architecture/Dependencies/Risk/Blast radius/YAGNI} | {critical/major/minor} | {finding} | {applied diff summary, or "Deferred to User-Grill" for major, or "Logged only" for minor} |
+
+##### Compliance findings
+<!-- reviewer: compliance-scanner-subagent | self (fallback) -->
+**Verdict:** {pass | revise}
+**Summary:** {one-line summary from compliance-scanner}
+
+| # | Dimension | Severity | Rule | Finding | Fix Applied |
+|---|-----------|----------|------|---------|-------------|
+| C1 | {Rule Compliance/Anti-Pattern Match/Rationalization Audit} | {critical/major/minor} | {rule_id or anti-pattern title, or "—"} | {finding} | {applied diff summary, or "Deferred to User-Grill" for major, or "Logged only" for minor} |
+
+#### Round 2
+<!-- Only if Round 1 had verdict: revise from either subagent. Omit section if loop exited early. -->
+<!-- Same structure as Round 1: two sub-sections (Griller findings + Compliance findings). -->
+
+#### Round 3
+<!-- Only if Round 2 had verdict: revise from either subagent. Omit section if loop exited early. -->
+<!-- Same structure as Round 1. -->
+
+**Residual after 3 rounds:** {None | list of un-fixed critical findings — tag each as [Griller] or [Compliance] — these are surfaced to the user before Phase 4}
 
 ### User-Grill
+<!-- Includes major findings forwarded from Self-Grill (tag [from Self-Grill R{N} F{M}] for griller findings, [from Compliance R{N} C{M}] for compliance findings), followed by architect-initiated questions. -->
 | # | Question | Recommended Answer | User Response | Revision |
 |---|----------|--------------------|---------------|----------|
-| 1 | {question} | {recommended answer} | {user response} | {None or what changed} |
+| 1 | {question} [from Compliance R{N} C{M}] | {recommended answer} | {user response} | {None or what changed} |
+| 2 | {question} [from Self-Grill R{N} F{M}] | {recommended answer} | {user response} | {None or what changed} |
 
 ## Success Criteria
 - [ ] Criterion 1
@@ -283,27 +323,52 @@ Update structural documentation and run post-execution review.
 - Reference `.claude/anti-patterns.md` in GUARD sections of frontend tasks
 - Every task MUST have WHAT/HOW/GUARD/ACCEPT structure. ACCEPT lists specific, testable acceptance conditions — not vague "it works"
 - Task `Bloom:` assigns cognitive complexity (L1-L2: recall/template fill → haiku; L3-L4: apply/analyze → sonnet; L5-L6: evaluate/create → opus)
+- If a task deliberately deviates from a rule in `.claude/rules/{be,fe}-rules.json`, the task MUST include a `Rule exception:` block with three fields: `Rule violated` (the rule id), `Alternatives tried` (≥ 2 concrete attempts, each with a concrete failure reason — not "doesn't work"), and `Rationale` (why no alternative is viable). The compliance-scanner enforces this in Phase 3b — a missing block, fewer than 2 alternatives, or handwavy failure reasons are critical findings. Do NOT inline a free-form "ECCEZIONE ESPLICITA" justification anywhere else in the masterplan — only the structured block is recognised.
 
-### Phase 3b: Self-Grill
+### Phase 3b: Self-Grill (parallel subagent loop)
 
-After designing the masterplan, interrogate your own plan before presenting it. Walk a decision tree internally — challenge every significant choice.
+After writing the masterplan to its file, stress-test it by delegating to **two independent subagents in parallel**: the `masterplan-griller` (design-quality auditor) and the `masterplan-compliance-scanner` (rule-compliance auditor). You do **not** interrogate yourself — you would be biased toward the choices you just made. The two subagents have **complementary anti-patterns**:
 
-For each question:
-1. State the question
-2. State the chosen answer with reasoning
-3. If the answer is weak — revise the plan before continuing
+- The griller surfaces NEW issues across Scope / Architecture / Dependencies / Risk / Blast radius / YAGNI. It does **not** re-evaluate your reasoning.
+- The compliance-scanner does the opposite: it **specifically audits** your reasoning against `.claude/rules/{be,fe}-rules.json` and `.claude/anti-patterns.md`, and flags rationalized rule violations (including any task whose `Rule exception:` block is missing, incomplete, or handwavy).
 
-**Categories (check each):**
-- **Scope:** "Can any task be cut without breaking the feature?"
-- **Architecture:** "Why this pattern over alternatives? What breaks if requirements change?"
-- **Dependencies:** "Are task dependencies correct? Could any run in parallel instead?"
-- **Risk:** "What's the worst failure mode? Is the mitigation concrete or hand-wavy?"
-- **Blast radius:** "What existing functionality could this break?" — use `get_blast_radius` on affected files
-- **YAGNI:** "Is any task gold-plating? Building for hypothetical future needs?"
+Together they close the loop: design defects you missed (griller) + hard-constraint violations you may have justified to yourself (compliance-scanner).
 
-**Optional cross-model grill:** If an external model MCP is configured (llm-chat, codex-review, gemini-review), dispatch the grill questions to that model instead of self-interrogating. Pass only the masterplan file path — never summaries or interpretations. The external model reads the raw plan and forms its own assessment. Mark the grill log as `reviewer: external` vs `reviewer: self`.
+The loop runs **up to 3 rounds** and exits early as soon as a round returns `verdict: pass` from BOTH subagents.
 
-Record all findings in the Grill Log (see template in the masterplan format). Apply any revisions to the plan before proceeding to present.
+**Per-round procedure:**
+
+1. **Snapshot the plan in memory.** Before dispatching, read the current masterplan file into a string variable `plan_before_round`. You will use it to compute the diff for the next round if needed.
+
+2. **Dispatch both subagents in parallel** (single turn, two Task tool calls):
+   - `Task(subagent_type: masterplan-griller, prompt: { masterplan_path, round, prior_round_diff? })`
+   - `Task(subagent_type: masterplan-compliance-scanner, prompt: { masterplan_path, round, prior_round_diff? })`
+
+   For both prompts, pass only:
+   - `masterplan_path`: the absolute path to the plan
+   - `round`: the current round number (1, 2, or 3)
+   - `prior_round_diff` (rounds 2 and 3 only): a unified diff between `plan_before_round` of the previous round and `plan_before_round` of the current round, generated with `diff -u` via Bash on temp files
+
+   Do **not** include summaries, justifications, or interpretations of your plan in either subagent prompt. Both read the file directly.
+
+3. **Parse both YAML responses.** Each subagent returns a single fenced YAML block with `verdict`, `summary`, and a `findings` list. Parse them separately. Griller findings carry `id: F{N}`; compliance findings carry `id: C{N}` and may also carry `rule_id`.
+
+4. **Log the round.** Append a `#### Round {N}` sub-entry under `### Self-Grill` in the Grill Log. Inside it, emit two sub-tables: `##### Griller findings` and `##### Compliance findings`, each with the verdict, summary, and findings table for that subagent.
+
+5. **Apply findings by severity** (same policy for both subagents):
+   - **critical:** Auto-apply the `suggested_fix` directly to the masterplan file via Edit. Mark the row in the log with the diff summary you applied.
+     - For Rationalization Audit findings, "auto-apply" means inserting or completing the `Rule exception:` block in the offending task. If you cannot produce a credible `Alternatives tried` list (≥ 2 concrete attempts with concrete failure reasons), demote the finding to `major` and stash it instead — the user must adjudicate whether the exception is real.
+   - **major:** Do NOT auto-apply. Stash the finding in a `pending_user_grill` list to surface in Phase 4b. Mark the row "Deferred to User-Grill." Preserve the source tag (`[from Self-Grill R{N} F{M}]` vs `[from Compliance R{N} C{M}]`).
+   - **minor:** Log only. Mark the row "Logged only."
+
+6. **Decide loop continuation:**
+   - If BOTH subagents returned `verdict: pass` (zero critical findings in each) → exit the loop. Major and minor findings are already logged and stashed.
+   - If EITHER returned `verdict: revise` and `round < 3` → increment round and go back to step 1.
+   - If EITHER returned `verdict: revise` and `round == 3` → exit the loop with residual critical findings. Record them in the **Residual after 3 rounds** line of the Grill Log (tag each as Griller or Compliance) and surface them to the user as a blocking question in Phase 4 (Present), before proceeding to User-Grill.
+
+**Cross-model alternative:** If an external model MCP is configured (llm-chat, codex-review, gemini-review), you may substitute it for the `masterplan-griller` subagent on a per-round basis (same contract: file path + prior-round diff). The compliance-scanner is **not** substitutable — it needs deterministic read access to the project's `.claude/rules/*.json`, which external MCPs do not have. Mark the round's reviewers accordingly: `griller: griller-subagent | external ({model})`, `compliance: compliance-scanner-subagent`.
+
+**Fallback:** If the Task tool is unavailable in this environment, fall back to self-interrogation by walking BOTH decision trees manually in one pass (griller's 6 dimensions + compliance-scanner's 3 dimensions, including the Rationalization Audit against `.claude/rules/*.json`). Mark the log `reviewer: self (fallback)`. This is a last resort — the whole point of the loop is independence.
 
 ### Step 4: Present & Approve (1-3 turns)
 
@@ -311,14 +376,20 @@ Present the masterplan to the user section by section. Ask after each section if
 
 ### Phase 4b: User-Grill
 
-After presenting the plan and getting initial approval, walk the user through the decision tree:
+After presenting the plan and getting initial approval, walk the user through the decision tree.
 
-1. Present one question at a time with your recommended answer
+**Question ordering:**
+1. **Compliance findings first.** Surface every major finding from the compliance-scanner stashed in `pending_user_grill`. Each becomes a User-Grill question with the scanner's `finding` as the question body and the scanner's `suggested_fix` as the recommended answer. Mark the question `[from Compliance R{N} C{M}]` in the log. These come first because rule deviations are the highest-stakes decisions the user must adjudicate — if the user vetoes the exception, the architecture may need to change before any code is written.
+2. **Griller findings second.** Surface every major finding from the griller stashed in `pending_user_grill`. Mark `[from Self-Grill R{N} F{M}]`.
+3. **Architect-initiated questions last.** Ask any remaining clarifying questions across the same dimensions that neither subagent already covered.
+
+For each question:
+1. Present it one at a time with your recommended answer
 2. User can accept, challenge, or redirect
 3. If user challenges — defend your decision with evidence, or revise the plan
 4. Continue until user says "done" or all questions are exhausted
 
-**Max 25 questions** — prioritized by risk/impact. Highest-value questions come first. User can say "done" at any time to end the grill.
+**Max 25 questions total** (major findings + architect-initiated combined) — prioritized by risk/impact. Highest-value questions come first. User can say "done" at any time to end the grill.
 
 Format each question as:
 > **Grill Q{N}: {Question}**

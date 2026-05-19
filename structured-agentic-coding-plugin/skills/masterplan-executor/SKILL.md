@@ -38,7 +38,7 @@ Follow the procedure from the discovered file **in this conversation**. You ARE 
 
 The procedure covers: parse masterplan → pre-flight validation → execute phases sequentially (tasks in parallel batches where possible) → dispatch dev agents per task scope → targeted review → fix loop with circuit breaker → purpose validation → build verify → commit → finalize.
 
-**Leaf dispatch only.** When the procedure says "dispatch dev/review/fix agent", use the Agent tool from this conversation. Those agents must be leaves — they implement/review/fix a single task and return. They do not orchestrate further phases.
+**Orchestrate; never implement.** Every source-code edit goes through `Agent(...)` — even one-file FE tweaks. You may directly edit only masterplan checkboxes, the completion report, and `.md`-only `docs` tasks; reaching for Edit/Write on a code file means you skipped a dispatch — back out. Dispatched agents are leaves: one task in, result out, no nested orchestration.
 
 **Paste task text, don't pass file paths.** Extract the task's full text (description, Files, Details, Accept, injected rules, anti-patterns) from the masterplan and paste it directly into the dispatched agent's prompt. Do NOT ask the subagent to re-read the masterplan file — this keeps its context minimal and avoids transcript-resume pitfalls.
 

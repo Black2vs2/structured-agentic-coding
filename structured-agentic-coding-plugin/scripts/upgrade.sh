@@ -36,6 +36,16 @@ if ! command -v jq &>/dev/null; then
   exit 1
 fi
 
+# Hard-require GNU sed. BSD sed silently mangles `sed -i "s|a|b|g" file` (interprets
+# the script as the backup extension), which previously left this script emitting
+# cryptic errors mid-upgrade instead of failing fast.
+if ! sed --version 2>/dev/null | grep -q '^GNU sed'; then
+  echo "ERROR: GNU sed is required (BSD sed is not -i compatible)." >&2
+  echo "  macOS: brew install gnu-sed" >&2
+  echo "  (the Homebrew gnubin dir is auto-prepended to PATH by this script)" >&2
+  exit 1
+fi
+
 # Portable SHA-256
 if command -v sha256sum &>/dev/null; then
   _sha256() { sha256sum "$1" | awk '{print $1}'; }
@@ -123,6 +133,11 @@ PLACEHOLDERS["PLUGIN_DIR"]="$PLUGIN_DIR"
 PREFIX="${PLACEHOLDERS[PREFIX]:-}"
 FE_DIR="${PLACEHOLDERS[FE_DIR]:-}"
 BE_DIR="${PLACEHOLDERS[BE_DIR]:-}"
+SCOPE="${PLACEHOLDERS[SCOPE]:-fullstack}"
+
+# Same scope helpers as scaffold.sh — drive fragment assembly for CLAUDE.md / AGENTS.md.
+scope_includes_be() { [[ "$SCOPE" == "be" || "$SCOPE" == "fullstack" ]]; }
+scope_includes_fe() { [[ "$SCOPE" == "fe" || "$SCOPE" == "fullstack" ]]; }
 
 # --- Profile migration branch ---
 # When --migrate-profile is set, re-run scaffold.sh with the new profile and
@@ -193,6 +208,7 @@ CREATED=0
 SKIPPED=0
 FORCED=0
 REMOVED_UPSTREAM=0
+STALE_DROPPED=0
 
 # --- Helper: check if a category is selected ---
 is_category_selected() {
@@ -313,6 +329,118 @@ process_template() {
   rm -f "$rendered"
 }
 
+# --- Helper: process a SCOPE-aware fragmented root file (CLAUDE.md, AGENTS.md, settings.json) ---
+# Mirrors scaffold.sh's render_fragmented_template: concatenate _core.<ext> + _be-section.<ext>
+# (if BE in scope) + _fe-section.<ext> (if FE in scope), then append each overlay file in order
+# (used for per-profile CLAUDE.md overlays). Then placeholder-render and apply skip/update/
+# force/create against the manifest hash.
+#
+# The manifest's `source` field for these files is the FRAGMENT DIRECTORY (e.g. "base/claude"),
+# matching what scaffold.sh writes. That's why the legacy `process_template "base/CLAUDE.md"`
+# path was broken — no such flat file ever existed after the Phase 2 fragment refactor.
+#
+# Usage: process_fragmented_template <fragment_dir_rel> <target_rel> <category> [<overlay_path> ...]
+process_fragmented_template() {
+  local fragment_dir_rel="$1"
+  local target_rel="$2"
+  local category="$3"
+  shift 3
+  local overlays=("$@")
+
+  local fragment_dir_abs="$SCAFFOLD_DIR/$fragment_dir_rel"
+  local target_path="$TARGET_DIR/$target_rel"
+  local ext="${target_rel##*.}"
+  local core="$fragment_dir_abs/_core.$ext"
+
+  if [[ ! -f "$core" ]]; then
+    echo "ERROR: missing required fragment $core" >&2
+    return 1
+  fi
+
+  # Assemble fragments in the same order scaffold.sh does.
+  local assembled
+  assembled=$(mktemp "$TEMP_DIR/fragment.XXXXXX")
+  cat "$core" > "$assembled"
+  if scope_includes_be && [[ -f "$fragment_dir_abs/_be-section.$ext" && -s "$fragment_dir_abs/_be-section.$ext" ]]; then
+    cat "$fragment_dir_abs/_be-section.$ext" >> "$assembled"
+  fi
+  if scope_includes_fe && [[ -f "$fragment_dir_abs/_fe-section.$ext" && -s "$fragment_dir_abs/_fe-section.$ext" ]]; then
+    cat "$fragment_dir_abs/_fe-section.$ext" >> "$assembled"
+  fi
+  local overlay
+  for overlay in "${overlays[@]}"; do
+    [[ -n "$overlay" && -f "$overlay" && -s "$overlay" ]] || continue
+    cat "$overlay" >> "$assembled"
+  done
+
+  # Normalize CRLF, then render placeholders.
+  local rendered
+  rendered=$(mktemp "$TEMP_DIR/fragment-rendered.XXXXXX")
+  tr -d '\r' < "$assembled" > "$rendered"
+  rm -f "$assembled"
+  for key in "${!PLACEHOLDERS[@]}"; do
+    local token="__${key}__"
+    local value="${PLACEHOLDERS[$key]}"
+    local escaped_value
+    escaped_value=$(printf '%s' "$value" | sed 's/[&/\]/\\&/g')
+    sed -i "s|${token}|${escaped_value}|g" "$rendered"
+  done
+
+  local manifest_hash
+  manifest_hash=$(get_manifest_hash "$target_rel")
+
+  if [[ -n "$manifest_hash" ]]; then
+    if [[ ! -f "$target_path" ]]; then
+      mkdir -p "$(dirname "$target_path")"
+      cp "$rendered" "$target_path"
+      local new_hash
+      new_hash=$(compute_hash "$target_path")
+      echo "CREATE: $target_rel (was deleted)"
+      CREATED=$((CREATED + 1))
+      printf '%s\t%s\t%s\t%s\n' "$target_rel" "$new_hash" "$fragment_dir_rel" "$category" >> "$NEW_MANIFEST_ENTRIES"
+    else
+      local current_hash
+      current_hash=$(compute_hash "$target_path")
+      if [[ "$current_hash" == "$manifest_hash" ]]; then
+        cp "$rendered" "$target_path"
+        local new_hash
+        new_hash=$(compute_hash "$target_path")
+        echo "UPDATE: $target_rel"
+        UPDATED=$((UPDATED + 1))
+        printf '%s\t%s\t%s\t%s\n' "$target_rel" "$new_hash" "$fragment_dir_rel" "$category" >> "$NEW_MANIFEST_ENTRIES"
+      else
+        if [[ "$CONFLICT_MODE" == "force" ]]; then
+          cp "$rendered" "$target_path"
+          local new_hash
+          new_hash=$(compute_hash "$target_path")
+          echo "FORCE: $target_rel"
+          FORCED=$((FORCED + 1))
+          printf '%s\t%s\t%s\t%s\n' "$target_rel" "$new_hash" "$fragment_dir_rel" "$category" >> "$NEW_MANIFEST_ENTRIES"
+        else
+          echo "SKIP: $target_rel (modified)"
+          SKIPPED=$((SKIPPED + 1))
+          printf '%s\t%s\t%s\t%s\n' "$target_rel" "$manifest_hash" "$fragment_dir_rel" "$category" >> "$NEW_MANIFEST_ENTRIES"
+        fi
+      fi
+    fi
+  else
+    if [[ -f "$target_path" ]]; then
+      echo "SKIP: $target_rel (exists, not in manifest)"
+      SKIPPED=$((SKIPPED + 1))
+    else
+      mkdir -p "$(dirname "$target_path")"
+      cp "$rendered" "$target_path"
+      local new_hash
+      new_hash=$(compute_hash "$target_path")
+      echo "CREATE: $target_rel"
+      CREATED=$((CREATED + 1))
+      printf '%s\t%s\t%s\t%s\n' "$target_rel" "$new_hash" "$fragment_dir_rel" "$category" >> "$NEW_MANIFEST_ENTRIES"
+    fi
+  fi
+
+  rm -f "$rendered"
+}
+
 # --- Helper: process anti-patterns.md as merged base + any number of profile overlays ---
 # scaffold.sh appends every profile's anti-patterns-profile.md to the base file.
 # upgrade.sh must merge the same set (same order) to produce a matching hash.
@@ -427,7 +555,9 @@ if is_category_selected "commands"; then
   done
 fi
 
-# templates: base/templates/*, base/CLAUDE.md, base/AGENTS.md
+# templates: base/templates/* (flat files), plus fragment-assembled CLAUDE.md / AGENTS.md.
+# CLAUDE.md additionally appends every contributing profile's claude-section.md overlay
+# in PROFILE_LIST order — same composition rule as scaffold.sh.
 if is_category_selected "templates"; then
   for f in "$SCAFFOLD_DIR/base/templates/"*; do
     [[ -f "$f" ]] || continue
@@ -435,10 +565,15 @@ if is_category_selected "templates"; then
     process_template "$f" ".claude/templates/${name}" \
       "base/templates/${name}" "templates"
   done
-  process_template "$SCAFFOLD_DIR/base/CLAUDE.md" "CLAUDE.md" \
-    "base/CLAUDE.md" "templates"
-  process_template "$SCAFFOLD_DIR/base/AGENTS.md" ".claude/AGENTS.md" \
-    "base/AGENTS.md" "templates"
+
+  claude_overlays=()
+  for _p in "${PROFILE_LIST[@]}"; do
+    _overlay="$SCAFFOLD_DIR/profiles/$_p/claude-section.md"
+    [[ -f "$_overlay" ]] && claude_overlays+=("$_overlay")
+  done
+  unset _p _overlay
+  process_fragmented_template "base/claude" "CLAUDE.md" "templates" "${claude_overlays[@]}"
+  process_fragmented_template "base/agents-md" ".claude/AGENTS.md" "templates"
 fi
 
 # config: base/settings.json, base/anti-patterns.md
@@ -454,8 +589,7 @@ done
 unset _p
 
 if is_category_selected "config"; then
-  process_template "$SCAFFOLD_DIR/base/settings.json" ".claude/settings.json" \
-    "base/settings.json" "config"
+  process_fragmented_template "base/settings" ".claude/settings.json" "config"
   if [[ "$has_profile_anti_patterns" != "true" ]]; then
     process_template "$SCAFFOLD_DIR/base/anti-patterns.md" ".claude/anti-patterns.md" \
       "base/anti-patterns.md" "config"
@@ -555,11 +689,20 @@ if is_category_selected "config" && [[ "$has_profile_anti_patterns" == "true" ]]
 fi
 
 # --- Detect files removed upstream and preserve non-selected categories ---
+# Source-existence check uses -e (not -f) so directory-valued sources from fragmented
+# templates (base/claude, base/agents-md, base/settings) are detected as present.
+# Entries with empty source/category are legacy stale records from older scaffold
+# versions — drop them so the manifest self-heals.
 while IFS=$'\t' read -r target_rel hash source_rel category; do
+  if [[ -z "$source_rel" || -z "$category" ]]; then
+    echo "STALE: $target_rel (legacy entry without source/category — dropping)"
+    STALE_DROPPED=$((STALE_DROPPED + 1))
+    continue
+  fi
   if ! is_category_selected "$category"; then
     # Non-selected category — keep existing entry unchanged
     printf '%s\t%s\t%s\t%s\n' "$target_rel" "$hash" "$source_rel" "$category" >> "$NEW_MANIFEST_ENTRIES"
-  elif [[ ! -f "$SCAFFOLD_DIR/$source_rel" ]]; then
+  elif [[ ! -e "$SCAFFOLD_DIR/$source_rel" ]]; then
     # Source template removed in new version — report but keep in manifest
     echo "REMOVED_UPSTREAM: $target_rel"
     REMOVED_UPSTREAM=$((REMOVED_UPSTREAM + 1))
@@ -616,3 +759,4 @@ echo "Created: $CREATED"
 echo "Skipped: $SKIPPED (modified)"
 echo "Forced: $FORCED"
 echo "Removed upstream: $REMOVED_UPSTREAM"
+[[ $STALE_DROPPED -gt 0 ]] && echo "Stale dropped: $STALE_DROPPED (legacy manifest entries cleaned)"

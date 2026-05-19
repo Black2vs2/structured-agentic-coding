@@ -1,5 +1,5 @@
 {
-  "version": "4.3.2",
+  "version": "4.4.0",
   "scaffoldedAt": "<NORMALIZED_TIMESTAMP>",
   "updatedAt": null,
   "profile": "angular-dotnet",
@@ -40,7 +40,7 @@
       "source": "base/agents/codebase/doc-enforcer.md"
     },
     ".claude/agents/codebase/testad-masterplan-architect.md": {
-      "hash": "sha256:5c6fcb5c176bd0700968e9c7694cfc2a0f62359ad3578b6bc66b5c21070d0b41",
+      "hash": "sha256:c84ee598b2afc72cbf622bb08f5805b12d1b21319a796560278916d1c6903608",
       "category": "agents-core",
       "source": "base/agents/codebase/masterplan-architect.md"
     },
@@ -48,6 +48,11 @@
       "hash": "sha256:cae876e851ecadf8631faef4cc78f6985181d9ad44faa8068231c831874135bd",
       "category": "agents-core",
       "source": "base/agents/codebase/masterplan-executor.md"
+    },
+    ".claude/agents/codebase/testad-masterplan-griller.md": {
+      "hash": "sha256:c6d9662b514ab759d34a33855879f2784838db2aa569e75cebfdbd5a2ef13b72",
+      "category": "agents-core",
+      "source": "base/agents/codebase/masterplan-griller.md"
     },
     ".claude/agents/codebase/testad-masterplan-reviewer.md": {
       "hash": "sha256:b9765fe727addc40021d6cfd632527881c7f2040b7b81760827955e8b4a6b5af",
@@ -75,7 +80,7 @@
       "source": "base/commands/masterplan-review.md"
     },
     ".claude/commands/masterplan.md": {
-      "hash": "sha256:0201999672193da551317bdc84095c6755d87c212896dbb12375570d57a5c827",
+      "hash": "sha256:c5597243b2715c32d29558d4d420cf9b3d13f64864adb033f082c7b4b49316ae",
       "category": "commands",
       "source": "base/commands/masterplan.md"
     },
