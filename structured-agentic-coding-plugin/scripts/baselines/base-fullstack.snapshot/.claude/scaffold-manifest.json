@@ -1,5 +1,5 @@
 {
-  "version": "4.3.2",
+  "version": "4.4.0",
   "scaffoldedAt": "<NORMALIZED_TIMESTAMP>",
   "updatedAt": null,
   "profile": "base",
@@ -35,7 +35,7 @@
       "source": "base/agents/codebase/doc-enforcer.md"
     },
     ".claude/agents/codebase/testbase-masterplan-architect.md": {
-      "hash": "sha256:73c89eb91b6c2b4ad74689fe2af84295c2cb2d6068219d9a63dc063913b0f6f2",
+      "hash": "sha256:c8f74382d6e8edae555aa8dd897769a0dffa2f313d9274f1e5617f75cee6efef",
       "category": "agents-core",
       "source": "base/agents/codebase/masterplan-architect.md"
     },
@@ -43,6 +43,11 @@
       "hash": "sha256:fe02a9ea51decd064ecef34f03e8bb71dacf10ef7b81eb14eefa1b684cbeeb72",
       "category": "agents-core",
       "source": "base/agents/codebase/masterplan-executor.md"
+    },
+    ".claude/agents/codebase/testbase-masterplan-griller.md": {
+      "hash": "sha256:29d29bf36a54279478f10f15310936d437ba7c11cab2f267bce05480d33261c8",
+      "category": "agents-core",
+      "source": "base/agents/codebase/masterplan-griller.md"
     },
     ".claude/agents/codebase/testbase-masterplan-reviewer.md": {
       "hash": "sha256:3cb44ae792c4be4f71d94a0985d6274fcc33cf426d011355ac9c295c640ad1f2",
@@ -70,7 +75,7 @@
       "source": "base/commands/masterplan-review.md"
     },
     ".claude/commands/masterplan.md": {
-      "hash": "sha256:0201999672193da551317bdc84095c6755d87c212896dbb12375570d57a5c827",
+      "hash": "sha256:c5597243b2715c32d29558d4d420cf9b3d13f64864adb033f082c7b4b49316ae",
       "category": "commands",
       "source": "base/commands/masterplan.md"
     },

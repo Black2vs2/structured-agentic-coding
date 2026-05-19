@@ -1,5 +1,5 @@
 {
-  "version": "4.3.2",
+  "version": "4.4.0",
   "scaffoldedAt": "<NORMALIZED_TIMESTAMP>",
   "updatedAt": null,
   "profile": "refine-nestjs-query-fe",
@@ -34,7 +34,7 @@
       "source": "base/agents/codebase/doc-enforcer.md"
     },
     ".claude/agents/codebase/testrnq-masterplan-architect.md": {
-      "hash": "sha256:ec5dca7f1028594d1a50142a3bebd6fb31f360893e85eca35f71f3ec6ecc671a",
+      "hash": "sha256:dcda1efc419817404fa9437229e1c236858a30010cf237c57cf20e01d6f0ca9c",
       "category": "agents-core",
       "source": "base/agents/codebase/masterplan-architect.md"
     },
@@ -42,6 +42,11 @@
       "hash": "sha256:3166132692221ccc424436ba99847cd028f300bc20c7adf1f059e49d14403ea4",
       "category": "agents-core",
       "source": "base/agents/codebase/masterplan-executor.md"
+    },
+    ".claude/agents/codebase/testrnq-masterplan-griller.md": {
+      "hash": "sha256:b482e35fcb8e76a09b5402529d88c756cd9c126366d0161abbf1819d5c7fe262",
+      "category": "agents-core",
+      "source": "base/agents/codebase/masterplan-griller.md"
     },
     ".claude/agents/codebase/testrnq-masterplan-reviewer.md": {
       "hash": "sha256:2ba37ecc3ed9ed3e1a42bf41f925856f6277a9b378fba4d556025f113584f63c",
@@ -69,7 +74,7 @@
       "source": "base/commands/masterplan-review.md"
     },
     ".claude/commands/masterplan.md": {
-      "hash": "sha256:0201999672193da551317bdc84095c6755d87c212896dbb12375570d57a5c827",
+      "hash": "sha256:c5597243b2715c32d29558d4d420cf9b3d13f64864adb033f082c7b4b49316ae",
       "category": "commands",
       "source": "base/commands/masterplan.md"
     },

@@ -248,15 +248,44 @@ Update structural documentation and run post-execution review.
 ## Grill Log
 
 ### Self-Grill
-<!-- reviewer: self | external ({model_name}) -->
-| # | Question | Answer | Revision |
-|---|----------|--------|----------|
-| 1 | {question} | {answer with reasoning} | {None or what changed} |
+<!-- reviewer: griller-subagent | external ({model_name}) | self (fallback) -->
+<!-- Self-Grill runs as an isolated subagent per round (max 3 rounds). -->
+<!-- Loop exits early when a round returns verdict: pass. -->
+<!-- Critical findings are auto-applied. Major findings are surfaced as User-Grill questions. Minor findings are logged but not blocking. -->
+
+#### Round 1
+**Verdict:** {pass | revise}
+**Summary:** {one-line summary from griller}
+
+| # | Dimension | Severity | Finding | Fix Applied |
+|---|-----------|----------|---------|-------------|
+| F1 | {Scope/Architecture/...} | {critical/major/minor} | {finding} | {applied diff summary, or "Deferred to User-Grill" for major, or "Logged only" for minor} |
+
+#### Round 2
+<!-- Only if Round 1 verdict was revise. Omit section if loop exited early. -->
+**Verdict:** {pass | revise}
+**Summary:** {...}
+
+| # | Dimension | Severity | Finding | Fix Applied |
+|---|-----------|----------|---------|-------------|
+| ... | ... | ... | ... | ... |
+
+#### Round 3
+<!-- Only if Round 2 verdict was revise. Omit section if loop exited early. -->
+**Verdict:** {pass | revise}
+**Summary:** {...}
+
+| # | Dimension | Severity | Finding | Fix Applied |
+|---|-----------|----------|---------|-------------|
+| ... | ... | ... | ... | ... |
+
+**Residual after 3 rounds:** {None | list of un-fixed critical findings — these are surfaced to the user before Phase 4}
 
 ### User-Grill
+<!-- Includes major findings forwarded from Self-Grill (marked with [from Self-Grill]) followed by architect-initiated questions. -->
 | # | Question | Recommended Answer | User Response | Revision |
 |---|----------|--------------------|---------------|----------|
-| 1 | {question} | {recommended answer} | {user response} | {None or what changed} |
+| 1 | {question} [from Self-Grill R{N} F{M}] | {recommended answer} | {user response} | {None or what changed} |
 
 ## Success Criteria
 - [ ] Criterion 1
@@ -284,26 +313,40 @@ Update structural documentation and run post-execution review.
 - Every task MUST have WHAT/HOW/GUARD/ACCEPT structure. ACCEPT lists specific, testable acceptance conditions — not vague "it works"
 - Task `Bloom:` assigns cognitive complexity (L1-L2: recall/template fill → haiku; L3-L4: apply/analyze → sonnet; L5-L6: evaluate/create → opus)
 
-### Phase 3b: Self-Grill
+### Phase 3b: Self-Grill (subagent loop)
 
-After designing the masterplan, interrogate your own plan before presenting it. Walk a decision tree internally — challenge every significant choice.
+After writing the masterplan to its file, stress-test it by delegating to an independent griller subagent. You do **not** interrogate yourself — you would be biased toward the choices you just made. Instead, you dispatch a fresh `masterplan-griller` subagent with no prior context, let it apply the decision tree against the raw file, then apply its findings.
 
-For each question:
-1. State the question
-2. State the chosen answer with reasoning
-3. If the answer is weak — revise the plan before continuing
+The loop runs **up to 3 rounds** and exits early as soon as a round returns `verdict: pass`.
 
-**Categories (check each):**
-- **Scope:** "Can any task be cut without breaking the feature?"
-- **Architecture:** "Why this pattern over alternatives? What breaks if requirements change?"
-- **Dependencies:** "Are task dependencies correct? Could any run in parallel instead?"
-- **Risk:** "What's the worst failure mode? Is the mitigation concrete or hand-wavy?"
-- **Blast radius:** "What existing functionality could this break?" — use `get_blast_radius` on affected files
-- **YAGNI:** "Is any task gold-plating? Building for hypothetical future needs?"
+**Per-round procedure:**
 
-**Optional cross-model grill:** If an external model MCP is configured (llm-chat, codex-review, gemini-review), dispatch the grill questions to that model instead of self-interrogating. Pass only the masterplan file path — never summaries or interpretations. The external model reads the raw plan and forms its own assessment. Mark the grill log as `reviewer: external` vs `reviewer: self`.
+1. **Snapshot the plan in memory.** Before dispatching the griller, read the current masterplan file into a string variable `plan_before_round`. You will use it to compute the diff for the next round if needed.
 
-Record all findings in the Grill Log (see template in the masterplan format). Apply any revisions to the plan before proceeding to present.
+2. **Dispatch the griller subagent.** Use the Task tool with `subagent_type: masterplan-griller`. Pass it a self-contained prompt containing only:
+   - `masterplan_path`: the absolute path to the plan
+   - `round`: the current round number (1, 2, or 3)
+   - `prior_round_diff` (rounds 2 and 3 only): a unified diff between `plan_before_round` of the previous round and `plan_before_round` of the current round, generated with `diff -u` via Bash on temp files
+
+   Do **not** include summaries, justifications, or interpretations of your plan in the subagent prompt. The griller reads the file directly.
+
+3. **Parse the YAML response.** The griller returns a single fenced YAML block with `verdict`, `summary`, and a `findings` list. Parse it.
+
+4. **Log the round.** Append a `#### Round {N}` sub-entry under `### Self-Grill` in the Grill Log with the verdict, summary, and findings table (see template in the masterplan format).
+
+5. **Apply findings by severity:**
+   - **critical:** Auto-apply the `suggested_fix` directly to the masterplan file via Edit. Mark the row in the log with the diff summary you applied.
+   - **major:** Do NOT auto-apply. Stash the finding in a `pending_user_grill` list to surface in Phase 4b. Mark the row "Deferred to User-Grill."
+   - **minor:** Log only. Mark the row "Logged only."
+
+6. **Decide loop continuation:**
+   - If `verdict: pass` (zero critical findings) → exit the loop. Major and minor findings are already logged and stashed.
+   - If `verdict: revise` and `round < 3` → increment round and go back to step 1.
+   - If `verdict: revise` and `round == 3` → exit the loop with residual critical findings. Record them in the **Residual after 3 rounds** line of the Grill Log and surface them to the user as a blocking question in Phase 4 (Present), before proceeding to User-Grill.
+
+**Cross-model alternative:** If an external model MCP is configured (llm-chat, codex-review, gemini-review), you may substitute it for the `masterplan-griller` subagent on a per-round basis. Same contract: pass only the file path and prior-round diff. Mark the round's reviewer accordingly (`griller-subagent` | `external ({model})`).
+
+**Fallback:** If the Task tool is unavailable in this environment, fall back to self-interrogation by walking the same 6-dimension decision tree manually in one pass. Mark the log `reviewer: self (fallback)`. This is a last resort — the whole point of the loop is independence.
 
 ### Step 4: Present & Approve (1-3 turns)
 
@@ -311,14 +354,19 @@ Present the masterplan to the user section by section. Ask after each section if
 
 ### Phase 4b: User-Grill
 
-After presenting the plan and getting initial approval, walk the user through the decision tree:
+After presenting the plan and getting initial approval, walk the user through the decision tree.
 
-1. Present one question at a time with your recommended answer
+**Question ordering:**
+1. First, surface every major finding stashed in `pending_user_grill` from Phase 3b. Each becomes a User-Grill question with the griller's `finding` as the question body and the griller's `suggested_fix` as the recommended answer. Mark the question `[from Self-Grill R{N} F{M}]` in the log so the audit trail links back. These come first because they are concrete defects the independent griller flagged that you chose not to auto-fix.
+2. Then, ask any architect-initiated questions across the same six dimensions that the griller did not already cover.
+
+For each question:
+1. Present it one at a time with your recommended answer
 2. User can accept, challenge, or redirect
 3. If user challenges — defend your decision with evidence, or revise the plan
 4. Continue until user says "done" or all questions are exhausted
 
-**Max 25 questions** — prioritized by risk/impact. Highest-value questions come first. User can say "done" at any time to end the grill.
+**Max 25 questions total** (major findings + architect-initiated combined) — prioritized by risk/impact. Highest-value questions come first. User can say "done" at any time to end the grill.
 
 Format each question as:
 > **Grill Q{N}: {Question}**

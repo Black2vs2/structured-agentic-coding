@@ -132,10 +132,10 @@ Rules live at `.claude/rules/be-rules.json` and `.claude/rules/fe-rules.json`, g
 
 Before a masterplan is handed to the executor, the architect runs it through two rounds of deliberate interrogation — the "roast" phase.
 
-- **Self-Grill** — the architect walks a decision tree against its own plan: Scope (can any task be cut?), Architecture (why this pattern?), Dependencies (could anything run in parallel?), Risk (worst failure mode?), Blast radius (what breaks?), YAGNI (any gold-plating?). Weak answers force a revision before the plan is shown. Optionally delegated to an external model (codex-review, gemini-review) for an independent read.
-- **User-Grill** — the user is walked through the same decision tree on the surfaced plan, with a recommended answer per question. Responses feed back into revisions.
+- **Self-Grill** — runs as an **independent subagent** (`masterplan-griller`), not the architect itself. The architect that wrote the plan is the worst possible reviewer of it: it has already rationalized every choice. Instead, a fresh subagent with no prior context reads the raw file and applies a fixed decision tree — Scope (can any task be cut?), Architecture (why this pattern?), Dependencies (could anything run in parallel?), Risk (worst failure mode?), Blast radius (what breaks?), YAGNI (any gold-plating?). Findings come back classified by severity: **critical** is auto-applied, **major** is forwarded to User-Grill, **minor** is logged. The loop runs up to 3 rounds and exits early when no critical findings remain. Each round dispatches a new subagent so it can't anchor on the previous round's reasoning. An external-model variant (codex-review, gemini-review) can be substituted per round.
+- **User-Grill** — the user is walked through the same decision tree on the surfaced plan, with a recommended answer per question. **Major findings forwarded from Self-Grill come first** in the ordering — these are concrete defects the independent griller flagged that the architect did not auto-fix because they have defensible alternatives. The user accepts, challenges, or redirects each.
 
-Both are recorded in the masterplan's Grill Log so decisions are traceable post-execution.
+Both are recorded in the masterplan's Grill Log, with one sub-entry per Self-Grill round, so decisions are traceable post-execution.
 
 ## Features
 
