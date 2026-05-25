@@ -55,7 +55,7 @@ Read the discovered agent definition and follow its procedure exactly. The agent
 2. **Design System Analysis** — if feature has UI, scan existing pages for patterns
 3. **Clarify** — ask 5-8 clarifying questions (one per turn, prefer multiple choice)
 4. **Design** — produce the masterplan in the required format
-5. **Self-Grill** — interrogate your own plan before presenting
+5. **Self-Grill** — dispatch two independent subagents in parallel before presenting: `masterplan-griller` (design quality across 6 dimensions) + `masterplan-compliance-scanner` (rule compliance + rationalization audit against `.claude/rules/*.json` and `.claude/anti-patterns.md`)
 6. **Present** — show sections to user for approval
 7. **User-Grill** — walk user through decision tree
 8. **Write** — save to `docs/masterplans/<feature-name>.md`

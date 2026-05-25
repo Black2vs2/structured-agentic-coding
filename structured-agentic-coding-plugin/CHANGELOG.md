@@ -6,6 +6,22 @@ Versioning: [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+## [4.5.0] - 2026-05-25
+
+### Added
+- **New subagent `masterplan-compliance-scanner`** — dispatched in parallel with `masterplan-griller` during architect Phase 3b. Mirrors the griller's contract (same YAML output shape, same per-round invocation) but with the opposite anti-pattern: it **specifically audits the architect's reasoning** against `.claude/rules/be-rules.json`, `.claude/rules/fe-rules.json`, and `.claude/anti-patterns.md`. Closes the gap where a rule violation pre-rationalized in the masterplan would propagate unchallenged through the dev/reviewer chain. Three dimensions: Rule Compliance, Anti-Pattern Match, Rationalization Audit (`scaffold/base/agents/codebase/masterplan-compliance-scanner.md`).
+- **Rule Exception Block** in the masterplan task format — when a task deliberately deviates from a project rule, it MUST include a structured `Rule exception:` block with `Rule violated`, `Alternatives tried` (≥ 2 concrete attempts with concrete failure reasons), and `Rationale`. Free-form "ECCEZIONE ESPLICITA" prose elsewhere in the plan is no longer recognised — only the structured block. The compliance-scanner's Rationalization Audit enforces this: a missing block or handwavy alternatives is a critical finding.
+- **Rules digest in architect Phase 1** — the masterplan-architect now reads `.claude/rules/{be,fe}-rules.json` (categories + names + check fields; skips `why`/`fix`) during Orient. This is the hard-constraint surface the architect designs WITHIN, so rule conflicts surface as Phase 2 clarifying questions instead of as post-hoc rationalizations.
+
+### Changed
+- **Architect Phase 3b is now parallel** — dispatches BOTH `masterplan-griller` and `masterplan-compliance-scanner` in a single turn (two Task calls), then merges findings. Loop continues if EITHER subagent returns `verdict: revise`; exits when BOTH return `pass`. Same 3-round cap.
+- **Self-Grill log format** — `#### Round {N}` now contains two sub-tables (`##### Griller findings`, `##### Compliance findings`). Compliance table includes a `Rule` column citing the violated `rule_id` or anti-pattern title.
+- **User-Grill question ordering** — compliance findings surface first (rule deviations are the highest-stakes user decisions), then griller findings, then architect-initiated questions. Tags distinguish source: `[from Compliance R{N} C{M}]` vs `[from Self-Grill R{N} F{M}]`.
+
+### Notes
+- **No executor changes.** Per-task rule injection in `masterplan-executor` is unchanged — the new scanner sits at architect phase as a gate before any dev dispatch, which is structurally a better moment to catch pre-rationalized violations than executor pre-flight (the masterplan would already be authoritative by then).
+- **External-model substitution still works for the griller** but the compliance-scanner is not substitutable — it needs deterministic read access to `.claude/rules/*.json`, which external MCPs do not have.
+
 ## [4.4.0] - 2026-04-16
 
 ### Added
