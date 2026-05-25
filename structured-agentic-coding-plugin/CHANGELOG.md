@@ -6,6 +6,17 @@ Versioning: [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+## [4.5.1] - 2026-05-25
+
+### Fixed
+- **`upgrade.sh` now handles fragmented root templates.** Since the Phase 2 fragment refactor (commit `a314608`), `scaffold.sh` has assembled `CLAUDE.md`, `.claude/AGENTS.md`, and `.claude/settings.json` from `_core.<ext>` + `_be-section.<ext>` + `_fe-section.<ext>` fragments under `base/claude/`, `base/agents-md/`, `base/settings/`. `upgrade.sh` was never updated to match — it tried to read flat `base/CLAUDE.md` / `base/AGENTS.md` / `base/settings.json` files that don't exist, leaving those three files unreachable by upgrade and emitted as `REMOVED_UPSTREAM` false positives. Added `process_fragmented_template` that mirrors `scaffold.sh`'s `render_fragmented_template` (SCOPE-aware concat + per-profile `claude-section.md` overlay for CLAUDE.md), and rewired the three call sites.
+- **`upgrade.sh` REMOVED_UPSTREAM check uses `-e` instead of `-f`.** Directory-valued sources (the fragment dirs above) now resolve correctly. Previously every fragment-tracked entry was reported as `REMOVED_UPSTREAM` even when the source dir was still present.
+- **Stale manifest entries are self-healed on upgrade.** Entries with `source: null` / `category: null` left behind by pre-tracking scaffold runs (or older bugs) used to inflate `REMOVED_UPSTREAM` counts and survive forever. They're now dropped on each upgrade with a `STALE: <path> (legacy entry — dropping)` log line and a `Stale dropped: N` summary.
+- **`upgrade.sh` hard-requires GNU sed.** Previously the macOS Homebrew gnubin shim was best-effort: if `gnu-sed` wasn't installed, BSD sed silently misinterpreted `sed -i "s|...|g" file` (treating the script as the backup extension) and emitted cryptic mid-run errors without aborting. The script now detects via `sed --version | grep '^GNU sed'` and exits with a clear `brew install gnu-sed` message before doing any work.
+
+### Notes
+- No template or agent content changed in 4.5.1 — purely a fix to the upgrade engine. Re-running `/upgrade-agentic-coding` from 4.5.0 (or earlier) will now correctly refresh `CLAUDE.md`, `AGENTS.md`, and `settings.json`, and clean any legacy stale entries from the manifest in a single pass.
+
 ## [4.5.0] - 2026-05-25
 
 ### Added
