@@ -32,7 +32,7 @@ Use `.claude/AGENTS.md` (already in your context) as the primary source for avai
 | `mixed` | Split by path prefix — see Mixed Scope Handling below | | |
 | `openapi-regen` | API Sync agent | — | — |
 | `e2e` | E2E agent | — | — |
-| `docs` | Executor handles directly (Write/Edit) — no agent dispatch | — | — |
+| `docs` | `.md` files only — executor edits inline, no dispatch | — | — |
 
 Domain knowledge (security, state machines, forms, stores, etc.) is built into the Code Reviewers via scan playbooks and deep checks — there are no separate specialist agents.
 
@@ -105,7 +105,7 @@ If a phase has 3+ tasks with the same scope and similar structure (e.g., 5 handl
 
 This prevents multiplying a wrong approach across many tasks.
 
-For each task in the batch, dispatch the appropriate agent. The prompt structure depends on scope:
+For each task in the batch, dispatch the appropriate agent. **Code-bearing scopes (`be`, `fe`, `mixed`, `openapi-regen`, `e2e`) must always dispatch — no inline shortcuts, even for one-line tweaks or "trivial" single-file changes.** The prompt structure depends on scope:
 
 **Model routing by Bloom level:**
 If the task has a `Bloom:` field, use it to select the model for the dispatched agent:
@@ -219,8 +219,8 @@ Split the task's `Files:` list by path prefix:
 - Run BE first, then FE sequentially. Never in parallel.
 - If ALL files are documentation (`.md` files only), handle directly — see "docs" scope below.
 
-**For scope `docs` (or mixed tasks where all files are `.md`):**
-Handle directly — do NOT dispatch to a dev agent. The executor reads the task Details and creates/updates the documentation files itself using Write/Edit tools. This avoids the overhead of spinning up a Feature Developer for markdown files.
+**For scope `docs` (or mixed tasks with `.md` files only):**
+Edit directly with Write/Edit — no dev agent. This is the ONLY scope where the executor touches files inline; any code-bearing task (even a single FE prop change or one-line style fix) must dispatch.
 
 **For scope `openapi-regen`:**
 Dispatch the **API Sync agent** via the Agent tool. Do NOT run inline bash commands for regen.
