@@ -6,6 +6,17 @@ Versioning: [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+## [4.5.2] - 2026-05-27
+
+### Fixed
+- **`masterplan-executor` no longer edits source code inline.** The leaf-dispatch rule was too soft — it told the executor to use `Agent(...)` "when the procedure says to dispatch" but never explicitly forbade direct Edit/Write on code files. The model kept rationalizing "trivial" single-file FE tweaks as exceptions and bypassing the Frontend Feature Developer. Reworded as an identity rule with a closed exception list:
+  - `SKILL.md`: `**Leaf dispatch only.**` → `**Orchestrate; never implement.**` Direct edits are now explicitly limited to: masterplan checkboxes, the completion report, and `.md`-only `docs` tasks. Named anti-pattern: *"reaching for Edit/Write on a code file means you skipped a dispatch — back out"*.
+  - Scaffold procedure (`agents/codebase/masterplan-executor.md`): `docs`-scope row narrowed to "`.md` files only — executor edits inline, no dispatch"; added hard rule at top of per-scope handling that **code-bearing scopes (`be`, `fe`, `mixed`, `openapi-regen`, `e2e`) must always dispatch — no inline shortcuts, even for one-line tweaks**; rewrote the `docs` scope paragraph to call it out as the ONLY inline-edit scope.
+- Net line delta: 0 in `SKILL.md`, −1 in scaffold procedure. Tighter language, same surface area.
+
+### Notes
+- No template, agent, or rule content changed in 4.5.2 — purely a behavioral fix to the executor's prompt. Existing scaffolds inherit the scaffold-procedure tightening on next `/upgrade-agentic-coding`; the `SKILL.md` change takes effect immediately from the plugin install.
+
 ## [4.5.1] - 2026-05-25
 
 ### Fixed
